@@ -1,76 +1,83 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="si">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dharmaraja College - Management Dashboard</title>
+  <title>ධර්මරාජ විද්‍යාලය - කළමනාකරණ පද්ධතිය</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
     :root {
-      --brand: #7A0F2E;
-      --brand-dark: #560A20;
-      --saffron: #C9911A;
-      --bg: #F4ECE9;
-      --card: #FFFFFF;
-      --text: #241417;
-      --muted: #6B5B5E;
-      --border: #EBE0DE;
-      --danger: #B03A2E;
-      --success: #1A7A60;
+      --maroon-primary: #800000;
+      --maroon-dark: #4A0000;
+      --maroon-light: #A31C1C;
+      --gold-accent: #D4AF37;
+      --bg-color: #F9F3F3;
+      --card-bg: #FFFFFF;
+      --text-color: #2D1515;
+      --muted-text: #665555;
+      --border-color: #E2D0D0;
+      --danger: #C0392B;
+      --success: #27AE60;
     }
 
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: 'Noto Sans Sinhala', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
+      font-family: 'Noto Sans Sinhala', system-ui, -apple-system, sans-serif;
+      background: var(--bg-color);
+      color: var(--text-color);
     }
 
-    /* Auth Views */
+    /* පිවිසුම් තිරය (Auth View) */
     .auth-container {
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(175deg, var(--brand-dark) 0%, var(--brand) 100%);
+      background: linear-gradient(135deg, var(--maroon-dark) 0%, var(--maroon-primary) 100%);
       padding: 16px;
     }
     .auth-card {
-      background: var(--card);
+      background: var(--card-bg);
       border-radius: 12px;
       width: 100%;
-      max-width: 400px;
+      max-width: 420px;
       padding: 32px 24px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
       text-align: center;
+      border-top: 5px solid var(--gold-accent);
     }
-    .auth-card h2 { margin-top: 0; color: var(--brand); }
+    .auth-card h2 { margin-top: 0; color: var(--maroon-primary); font-size: 1.5rem; }
     .field { margin-bottom: 16px; text-align: left; }
-    .field label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 4px; }
+    .field label { display: block; font-size: 0.85rem; color: var(--muted-text); margin-bottom: 4px; font-weight: 600; }
     .field input, .field select, .field textarea {
-      width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem;
+      width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.95rem;
+      font-family: inherit;
+    }
+    .field input:focus, .field select:focus {
+      outline: none; border-color: var(--maroon-primary);
     }
 
-    /* App Dashboard Shell */
+    /* ප්‍රධාන පද්ධති රාමුව (App Shell) */
     #appShell { display: none; min-height: 100vh; flex-direction: column; }
     header {
-      background: var(--brand-dark);
+      background: var(--maroon-primary);
       color: #fff;
       padding: 14px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      border-bottom: 3px solid var(--gold-accent);
     }
-    header .title { font-size: 1.2rem; font-weight: bold; }
+    header .title { font-size: 1.25rem; font-weight: bold; }
     
     .nav-tabs {
       display: flex;
       background: #fff;
-      border-bottom: 2px solid var(--border);
+      border-bottom: 2px solid var(--border-color);
       overflow-x: auto;
     }
     .tab-btn {
@@ -78,136 +85,142 @@
       border: none;
       background: none;
       font-weight: 600;
-      color: var(--muted);
+      color: var(--muted-text);
       cursor: pointer;
       white-space: nowrap;
       border-bottom: 3px solid transparent;
+      font-family: inherit;
+      font-size: 0.95rem;
     }
     .tab-btn.active {
-      color: var(--brand);
-      border-bottom-color: var(--brand);
+      color: var(--maroon-primary);
+      border-bottom-color: var(--maroon-primary);
+      background-color: #FFF5F5;
     }
 
     .main-content { max-width: 1100px; margin: 0 auto; width: 100%; padding: 20px 16px; }
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
 
-    /* Component UI */
+    /* UI කොටස් (Cards, Tables, Buttons) */
     .card {
-      background: var(--card);
-      border: 1px solid var(--border);
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
       border-radius: 10px;
       padding: 20px;
       margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
     }
+    .card h2 { color: var(--maroon-primary); margin-top: 0; font-size: 1.2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
-    .span2 { grid-column: 1 / -1; }
     .btn-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
     
     button {
-      cursor: pointer; border: none; border-radius: 6px; padding: 10px 16px; font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; border: none; border-radius: 6px; padding: 10px 18px; font-size: 0.9rem; font-weight: 600;
+      font-family: inherit; transition: background 0.2s;
     }
-    .btn-primary { background: var(--brand); color: #fff; }
-    .btn-primary:hover { background: var(--brand-dark); }
-    .btn-secondary { background: #e0e5eb; color: var(--text); }
+    .btn-primary { background: var(--maroon-primary); color: #fff; }
+    .btn-primary:hover { background: var(--maroon-dark); }
+    .btn-secondary { background: #E2D0D0; color: var(--text-color); }
     .btn-danger { background: var(--danger); color: #fff; }
     .btn-small { padding: 6px 10px; font-size: 0.8rem; }
 
     table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 10px; }
-    th, td { border: 1px solid var(--border); padding: 10px; text-align: left; }
-    th { background: #f8f1f0; color: var(--brand-dark); }
+    th, td { border: 1px solid var(--border-color); padding: 10px; text-align: left; }
+    th { background: var(--maroon-primary); color: #FFFFFF; font-weight: 500; }
+    tr:nth-child(even) { background-color: #FAF4F4; }
     .table-scroll { overflow-x: auto; }
   </style>
 </head>
 <body>
 
-  <!-- AUTHENTICATION VIEW -->
+  <!-- පද්ධතියට ඇතුළු වීමේ තිරය (AUTH VIEW) -->
   <div class="auth-container" id="authView">
     <div class="auth-card">
-      <h2>School Portal Login</h2>
-      <p style="color: var(--muted); font-size: 0.9rem;">Dharmaraja College, Veyangoda</p>
+      <h2>ධර්මරාජ විද්‍යාලය</h2>
+      <p style="color: var(--muted-text); font-size: 0.9rem; margin-bottom: 20px;">පාසල් කළමනාකරණ පද්ධතියට පිවිසෙන්න</p>
       
       <form id="loginForm">
         <div class="field">
-          <label>Email Address</label>
+          <label>විද්‍යුත් තැපෑල (Email)</label>
           <input type="email" id="loginEmail" placeholder="admin@school.lk" required />
         </div>
         <div class="field">
-          <label>Password</label>
+          <label>මුරපදය (Password)</label>
           <input type="password" id="loginPassword" required />
         </div>
-        <button type="submit" class="btn-primary" style="width: 100%;">Login to Dashboard</button>
+        <button type="submit" class="btn-primary" style="width: 100%;">ඇතුළු වන්න</button>
       </form>
       <div id="authError" style="color: var(--danger); margin-top: 10px; font-size: 0.85rem;"></div>
     </div>
   </div>
 
-  <!-- MAIN DASHBOARD APP -->
+  <!-- ප්‍රධාන ඩෑෂ්බෝඩ් එක (MAIN DASHBOARD) -->
   <div id="appShell">
     <header>
-      <div class="title">ධර්මරාජ විද්‍යාලය — Management Dashboard</div>
+      <div class="title">ධර්මරාජ විද්‍යාලය — කළමනාකරණ පද්ධතිය</div>
       <div>
-        <span id="userDisplay" style="font-size: 0.85rem; margin-right: 10px;"></span>
-        <button class="btn-secondary btn-small" id="logoutBtn">Logout</button>
+        <span id="userDisplay" style="font-size: 0.85rem; margin-right: 10px; opacity: 0.9;"></span>
+        <button class="btn-secondary btn-small" id="logoutBtn">ඉවත් වන්න</button>
       </div>
     </header>
 
-    <!-- NAVIGATION TABS -->
+    <!-- පටික්කි/ටැබ්ස් Navigation Tabs -->
     <nav class="nav-tabs">
-      <button class="tab-btn active" data-tab="students">Students Database</button>
-      <button class="tab-btn" data-tab="teachers">Teachers Database</button>
-      <button class="tab-btn" data-tab="nonacademic">Non-Academic Database</button>
-      <button class="tab-btn" data-tab="marksheet">Mark Sheet</button>
+      <button class="tab-btn active" data-tab="students">ශිෂ්‍ය දත්ත පද්ධතිය</button>
+      <button class="tab-btn" data-tab="teachers">ගුරු දත්ත පද්ධතිය</button>
+      <button class="tab-btn" data-tab="nonacademic">අධ්‍යයන නොවන කාර්ය මණ්ඩලය</button>
+      <button class="tab-btn" data-tab="marksheet">ලකුණු ලේඛනය</button>
     </nav>
 
     <main class="main-content">
 
-      <!-- 1. STUDENT DATABASE -->
+      <!-- 1. ශිෂ්‍ය දත්ත පද්ධතිය (STUDENT DATABASE) -->
       <section class="tab-panel active" id="students">
         <div class="card">
-          <h2>Student Registration (ශිෂ්‍ය දත්ත)</h2>
+          <h2>නව ශිෂ්‍යයෙකු ඇතුළත් කිරීම</h2>
           <form id="studentForm">
             <input type="hidden" id="studentId">
             <div class="grid">
               <div class="field">
-                <label>Admission No *</label>
+                <label>ඇතුළත් වීමේ අංකය *</label>
                 <input type="text" id="stdIndex" required>
               </div>
               <div class="field">
-                <label>Full Name *</label>
+                <label>සම්පූර්ණ නම *</label>
                 <input type="text" id="stdName" required>
               </div>
               <div class="field">
-                <label>Grade / Class *</label>
-                <input type="text" id="stdClass" placeholder="e.g. 10-A" required>
+                <label>ශ්‍රේණිය / පන්තිය *</label>
+                <input type="text" id="stdClass" placeholder="උදා: 10-A" required>
               </div>
               <div class="field">
-                <label>Guardian Name</label>
+                <label>භාරකරුගේ නම</label>
                 <input type="text" id="stdGuardian">
               </div>
               <div class="field">
-                <label>Contact Number</label>
+                <label>දුරකථන අංකය</label>
                 <input type="tel" id="stdPhone">
               </div>
             </div>
             <div class="btn-row">
-              <button type="submit" class="btn-primary">Save Student</button>
+              <button type="submit" class="btn-primary">තොරතුරු සුරකින්න</button>
             </div>
           </form>
         </div>
 
         <div class="card">
-          <h2>Student Records</h2>
+          <h2>ලියාපදිංචි ශිෂ්‍ය ලැයිස්තුව</h2>
           <div class="table-scroll">
             <table>
               <thead>
                 <tr>
-                  <th>Index</th>
-                  <th>Name</th>
-                  <th>Class</th>
-                  <th>Guardian</th>
-                  <th>Contact</th>
-                  <th>Actions</th>
+                  <th>ඇතුළත් වීමේ අංකය</th>
+                  <th>නම</th>
+                  <th>පන්තිය</th>
+                  <th>භාරකරු</th>
+                  <th>දුරකථන අංකය</th>
+                  <th>ක්‍රියාමාර්ග</th>
                 </tr>
               </thead>
               <tbody id="studentTableBody"></tbody>
@@ -216,57 +229,58 @@
         </div>
       </section>
 
-      <!-- 2. TEACHERS DATABASE -->
+      <!-- 2. ගුරු දත්ත පද්ධතිය (TEACHER DATABASE) -->
       <section class="tab-panel" id="teachers">
         <div class="card">
-          <h2 id="teacherFormTitle">Add New Teacher (ගුරු දත්ත)</h2>
+          <h2>ගුරු භවතුන්ගේ දත්ත ඇතුළත් කිරීම</h2>
           <form id="teacherForm">
             <input type="hidden" id="teacherRecordId">
             <div class="grid">
               <div class="field">
-                <label>NIC No *</label>
+                <label>ජාතික හැඳුනුම්පත් අංකය *</label>
                 <input type="text" id="t_nic" required>
               </div>
               <div class="field">
-                <label>Full Name *</label>
+                <label>සම්පූර්ණ නම *</label>
                 <input type="text" id="t_fullName" required>
               </div>
               <div class="field">
-                <label>Position</label>
+                <label>තනතුර</label>
                 <select id="t_position">
-                  <option value="">-- Select --</option>
-                  <option value="Teacher">Teacher (ගුරු)</option>
-                  <option value="Head Teacher">Head Teacher (ප්‍රධාන ගුරු)</option>
-                  <option value="Deputy">Deputy Principal (උප ගුරු)</option>
+                  <option value="">-- තෝරන්න --</option>
+                  <option value="ගුරු">ගුරු</option>
+                  <option value="ප්‍රධාන ගුරු">ප්‍රධාන ගුරු</option>
+                  <option value="උප විදුහල්පති">උප විදුහල්පති</option>
+                  <option value="විදුහල්පති">විදුහල්පති</option>
                 </select>
               </div>
               <div class="field">
-                <label>Phone No.</label>
+                <label>දුරකථන අංකය</label>
                 <input type="tel" id="t_phone">
               </div>
               <div class="field">
-                <label>Bank</label>
+                <label>බැංකු විස්තර</label>
                 <input type="text" id="t_bank">
               </div>
             </div>
             <div class="btn-row">
-              <button type="submit" class="btn-primary">Save Teacher</button>
+              <button type="submit" class="btn-primary">තොරතුරු සුරකින්න</button>
             </div>
           </form>
         </div>
 
         <div class="card">
-          <h2>Teacher Records</h2>
+          <h2>ගුරු භවතුන්ගේ ලැයිස්තුව</h2>
           <div class="table-scroll">
             <table>
               <thead>
                 <tr>
-                  <th>NIC</th>
-                  <th>Name</th>
-                  <th>Position</th>
-                  <th>Phone</th>
-                  <th>Bank</th>
-                  <th>Actions</th>
+                  <th>හැඳුනුම්පත් අංකය</th>
+                  <th>නම</th>
+                  <th>තනතුර</th>
+                  <th>දුරකථන අංකය</th>
+                  <th>බැංකු විස්තර</th>
+                  <th>ක්‍රියාමාර්ග</th>
                 </tr>
               </thead>
               <tbody id="teacherTableBody"></tbody>
@@ -275,47 +289,47 @@
         </div>
       </section>
 
-      <!-- 3. NON-ACADEMIC DATABASE -->
+      <!-- 3. අධ්‍යයන නොවන කාර්ය මණ්ඩලය (NON-ACADEMIC DATABASE) -->
       <section class="tab-panel" id="nonacademic">
         <div class="card">
-          <h2>Non-Academic Staff Entry (අධ්‍යයන නොවන කාර්ය මණ්ඩලය)</h2>
+          <h2>අධ්‍යයන නොවන කාර්ය මණ්ඩල දත්ත ඇතුළත් කිරීම</h2>
           <form id="nonAcademicForm">
             <input type="hidden" id="naRecordId">
             <div class="grid">
               <div class="field">
-                <label>Employee ID / NIC *</label>
+                <label>සේවක අංකය / හැඳුනුම්පත *</label>
                 <input type="text" id="naNic" required>
               </div>
               <div class="field">
-                <label>Full Name *</label>
+                <label>සම්පූර්ණ නම *</label>
                 <input type="text" id="naName" required>
               </div>
               <div class="field">
-                <label>Role / Designation</label>
-                <input type="text" id="naRole" placeholder="e.g. Clerk, Lab Assistant, Security">
+                <label>තනතුර / කාර්යය</label>
+                <input type="text" id="naRole" placeholder="උදා: ලේඛකාධිකාරී, රසායනාගාර සහායක">
               </div>
               <div class="field">
-                <label>Contact Number</label>
+                <label>දුරකථන අංකය</label>
                 <input type="tel" id="naPhone">
               </div>
             </div>
             <div class="btn-row">
-              <button type="submit" class="btn-primary">Save Staff Member</button>
+              <button type="submit" class="btn-primary">තොරතුරු සුරකින්න</button>
             </div>
           </form>
         </div>
 
         <div class="card">
-          <h2>Staff Records</h2>
+          <h2>අධ්‍යයන නොවන කාර්ය මණ්ඩල ලැයිස්තුව</h2>
           <div class="table-scroll">
             <table>
               <thead>
                 <tr>
-                  <th>ID/NIC</th>
-                  <th>Name</th>
-                  <th>Role</th>
-                  <th>Phone</th>
-                  <th>Actions</th>
+                  <th>හැඳුනුම්පත / අංකය</th>
+                  <th>නම</th>
+                  <th>තනතුර</th>
+                  <th>දුරකථන අංකය</th>
+                  <th>ක්‍රියාමාර්ග</th>
                 </tr>
               </thead>
               <tbody id="naTableBody"></tbody>
@@ -324,61 +338,61 @@
         </div>
       </section>
 
-      <!-- 4. MARK SHEET MODULE -->
+      <!-- 4. ලකුණු ලේඛනය (MARK SHEET SYSTEM) -->
       <section class="tab-panel" id="marksheet">
         <div class="card">
-          <h2>Student Mark Sheet Entry (ලකුණු ලේඛනය)</h2>
+          <h2>ශිෂ්‍ය ලකුණු ඇතුළත් කිරීම</h2>
           <form id="marksheetForm">
             <div class="grid">
               <div class="field">
-                <label>Admission / Index No *</label>
+                <label>ඇතුළත් වීමේ අංකය *</label>
                 <input type="text" id="mIndex" required>
               </div>
               <div class="field">
-                <label>Term / Exam</label>
+                <label>වාරය (Term)</label>
                 <select id="mTerm">
-                  <option value="Term 1">Term 1</option>
-                  <option value="Term 2">Term 2</option>
-                  <option value="Term 3">Term 3</option>
+                  <option value="1 වන වාරය">1 වන වාරය</option>
+                  <option value="2 වන වාරය">2 වන වාරය</option>
+                  <option value="3 වන වාරය">3 වන වාරය</option>
                 </select>
               </div>
               <div class="field">
-                <label>Mathematics</label>
+                <label>ගණිතය</label>
                 <input type="number" id="mMaths" min="0" max="100">
               </div>
               <div class="field">
-                <label>Science</label>
+                <label>විද්‍යාව</label>
                 <input type="number" id="mScience" min="0" max="100">
               </div>
               <div class="field">
-                <label>English</label>
+                <label>ඉංග්‍රීසි</label>
                 <input type="number" id="mEnglish" min="0" max="100">
               </div>
               <div class="field">
-                <label>Sinhala</label>
+                <label>සිංහල</label>
                 <input type="number" id="mSinhala" min="0" max="100">
               </div>
             </div>
             <div class="btn-row">
-              <button type="submit" class="btn-primary">Calculate & Save Marks</button>
+              <button type="submit" class="btn-primary">ලකුණු ගණනය කර සුරකින්න</button>
             </div>
           </form>
         </div>
 
         <div class="card">
-          <h2>Marks Summary</h2>
+          <h2>ලකුණු සාරාංශය</h2>
           <div class="table-scroll">
             <table>
               <thead>
                 <tr>
-                  <th>Index</th>
-                  <th>Term</th>
-                  <th>Maths</th>
-                  <th>Science</th>
-                  <th>English</th>
-                  <th>Sinhala</th>
-                  <th>Total</th>
-                  <th>Average</th>
+                  <th>ඇතුළත් වීමේ අංකය</th>
+                  <th>වාරය</th>
+                  <th>ගණිතය</th>
+                  <th>විද්‍යාව</th>
+                  <th>ඉංග්‍රීසි</th>
+                  <th>සිංහල</th>
+                  <th>මුළු ලකුණු</th>
+                  <th>සමානය (%)</th>
                 </tr>
               </thead>
               <tbody id="marksTableBody"></tbody>
@@ -390,7 +404,7 @@
     </main>
   </div>
 
-  <!-- FIREBASE MODULE & INTEGRATION SCRIPT -->
+  <!-- FIREBASE සහ SYSTEM JS INTEGRATION -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
@@ -401,7 +415,7 @@
       signOut 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-    // Provided Firebase Config
+    // Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyBPPaWvOSTWeflv9ucnBoyQbZARDw6pSJU",
       authDomain: "demis-9e3c8.firebaseapp.com",
@@ -412,12 +426,12 @@
       measurementId: "G-S7N1CVLEPP"
     };
 
-    // Initialize Firebase
+    // Firebase සක්‍රිය කිරීම
     const app = initializeApp(firebaseConfig);
     const analytics = getAnalytics(app);
     const auth = getAuth(app);
 
-    // DOM Elements
+    // DOM العناصر
     const authView = document.getElementById('authView');
     const appShell = document.getElementById('appShell');
     const loginForm = document.getElementById('loginForm');
@@ -425,7 +439,7 @@
     const userDisplay = document.getElementById('userDisplay');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    // Authentication State Management
+    // පරිශීලක අනුමැතිය පරීක්ෂා කිරීම (Authentication Listener)
     onAuthStateChanged(auth, (user) => {
       if (user) {
         authView.style.display = 'none';
@@ -447,13 +461,13 @@
       try {
         await signInWithEmailAndPassword(auth, email, pass);
       } catch (err) {
-        authError.textContent = "Login failed: " + err.message;
+        authError.textContent = "පිවිසීම අසාර්ථක විය: " + err.message;
       }
     });
 
     logoutBtn.addEventListener('click', () => signOut(auth));
 
-    // Dashboard Navigation Logic
+    // Tab Navigation Logic
     const tabs = document.querySelectorAll('.tab-btn');
     const panels = document.querySelectorAll('.tab-panel');
 
@@ -466,7 +480,7 @@
       });
     });
 
-    // --- DATA STORE (Local Storage Persistence Fallback) ---
+    // Local Data Storage Operations
     const getStore = (key) => JSON.parse(localStorage.getItem(key) || '[]');
     const setStore = (key, val) => localStorage.setItem(key, JSON.stringify(val));
 
@@ -477,7 +491,7 @@
       renderMarks();
     }
 
-    // 1. Student Database Operations
+    // 1. ශිෂ්‍ය දත්ත (Students)
     const studentForm = document.getElementById('studentForm');
     studentForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -505,12 +519,12 @@
           <td>${s.class}</td>
           <td>${s.guardian || '-'}</td>
           <td>${s.phone || '-'}</td>
-          <td><button class="btn-danger btn-small" onclick="deleteItem('std_db', ${s.id})">Delete</button></td>
+          <td><button class="btn-danger btn-small" onclick="deleteItem('std_db', ${s.id})">ඉවත් කරන්න</button></td>
         </tr>
       `).join('');
     }
 
-    // 2. Teacher Database Operations
+    // 2. ගුරු දත්ත (Teachers)
     const teacherForm = document.getElementById('teacherForm');
     teacherForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -538,12 +552,12 @@
           <td>${t.position || '-'}</td>
           <td>${t.phone || '-'}</td>
           <td>${t.bank || '-'}</td>
-          <td><button class="btn-danger btn-small" onclick="deleteItem('teacherDatabaseRecords', ${t.id})">Delete</button></td>
+          <td><button class="btn-danger btn-small" onclick="deleteItem('teacherDatabaseRecords', ${t.id})">ඉවත් කරන්න</button></td>
         </tr>
       `).join('');
     }
 
-    // 3. Non-Academic Database Operations
+    // 3. අධ්‍යයන නොවන කාර්ය මණ්ඩලය (Non-Academic)
     const naForm = document.getElementById('nonAcademicForm');
     naForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -569,12 +583,12 @@
           <td>${n.name}</td>
           <td>${n.role || '-'}</td>
           <td>${n.phone || '-'}</td>
-          <td><button class="btn-danger btn-small" onclick="deleteItem('na_db', ${n.id})">Delete</button></td>
+          <td><button class="btn-danger btn-small" onclick="deleteItem('na_db', ${n.id})">ඉවත් කරන්න</button></td>
         </tr>
       `).join('');
     }
 
-    // 4. Mark Sheet Operations
+    // 4. ලකුණු ලේඛනය (Marks)
     const marksForm = document.getElementById('marksheetForm');
     marksForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -614,9 +628,9 @@
       `).join('');
     }
 
-    // Global helper to delete records
+    // Delete Operations Handler
     window.deleteItem = function(storeKey, id) {
-      if (confirm('Are you sure you want to delete this record?')) {
+      if (confirm('ඔබට මෙම දත්තය ඉවත් කිරීමට අවශ්‍යද?')) {
         let list = getStore(storeKey);
         list = list.filter(item => item.id !== id);
         setStore(storeKey, list);
