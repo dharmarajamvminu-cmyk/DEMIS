@@ -24,9 +24,11 @@ h1,h2,h3{font-family:'Noto Serif Sinhala',serif;margin:0;}
 .title h1{font-size:22px;color:#fff;}
 .title p{color:#E7BE6B;margin-top:4px;font-size:13.5px;}
 label{display:block;font-size:13.5px;font-weight:500;margin:0 0 6px;color:#2C3A37;}
-input,select{width:100%;padding:11px 12px;font-size:15px;font-family:inherit;border:1.5px solid var(--line);border-radius:8px;background:#FCFDFD;margin-bottom:14px;}
-input:focus,select:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(122,15,46,.13);}
+input,select,textarea{width:100%;padding:11px 12px;font-size:15px;font-family:inherit;border:1.5px solid var(--line);border-radius:8px;background:#FCFDFD;margin-bottom:14px;}
+textarea{resize:vertical;min-height:60px;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(122,15,46,.13);}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;}
+.grid2 .span2{grid-column:1 / -1;}
 @media(max-width:560px){.grid2{grid-template-columns:1fr;}}
 button{font-family:inherit;cursor:pointer;border:none;border-radius:8px;padding:12px 18px;font-size:15px;font-weight:600;background:var(--brand);color:#fff;}
 button:hover{background:var(--brand-dark);}
@@ -104,22 +106,25 @@ th{color:var(--ink-soft);font-weight:600;}
     <!-- TEACHERS -->
     <div id="tab-teachers" class="tabpane hidden">
       <div class="card">
-        <h2 style="font-size:17px;margin-bottom:14px;">නව ගුරුවරයෙක් එකතු කරන්න</h2>
+        <h2 style="font-size:17px;margin-bottom:14px;" id="teacherFormTitle">නව ගුරුවරයෙකු එක් කරන්න</h2>
         <div class="msg" id="teacherMsg"></div>
+        <div class="grid2" id="teacherFields"></div>
+        <input type="hidden" id="teacherEditId">
         <div class="grid2">
-          <div><label>නම</label><input id="tName"></div>
-          <div><label>හැඳුනුම්පත් අංකය</label><input id="tNic"></div>
-          <div><label>උගන්වන විෂය</label><input id="tSubject"></div>
-          <div><label>දුරකථන අංකය</label><input id="tPhone"></div>
           <div><label>විද්‍යුත් තැපෑල (පිවිසුම සඳහා)</label><input id="tEmail" type="email"></div>
           <div><label>තාවකාලික මුරපදය (පිවිසුම සඳහා)</label><input id="tPass" placeholder="අවම අකුරු 6ක්"></div>
         </div>
-        <button onclick="addTeacher()">ගුරුවරයා එකතු කරන්න</button>
-        <p style="font-size:12.5px;color:var(--ink-soft);margin-top:10px">විද්‍යුත් තැපෑල/මුරපදය දුන්නොත් එම ගුරුවරයාට වහාම පිවිසුම් ගිණුමක් සාදනු ලැබේ (ඔබගේ පරිපාලක සැසිය බාධා නොවේ). හිස්ව තැබුවහොත් දත්ත පමණක් ගබඩා වේ.</p>
+        <button onclick="saveTeacher()">සුරකින්න</button>
+        <button class="ghost" id="cancelTeacherEditBtn" onclick="resetTeacherForm()" style="display:none">අවලංගු කරන්න</button>
+        <p style="font-size:12.5px;color:var(--ink-soft);margin-top:10px">නව ගුරුවරයෙකු සඳහා විද්‍යුත් තැපෑල/මුරපදය දුන්නොත් වහාම පිවිසුම් ගිණුමක් සාදනු ලැබේ (ඔබගේ පරිපාලක සැසිය බාධා නොවේ). හිස්ව තැබුවහොත් දත්ත පමණක් ගබඩා වේ. දැනට ඇති ගුරුවරයෙකු සංස්කරණය කරන විට මෙම ක්ෂේත්‍ර නොසලකා හරිනු ලැබේ.</p>
       </div>
       <div class="card">
+        <div class="searchbar">
+          <input id="teacherSearch" placeholder="නම හෝ හැඳුනුම්පත් අංකයෙන් සොයන්න..." oninput="renderTeachers()">
+          <button class="ghost sm" onclick="exportTeachersCSV()">CSV අපනයනය</button>
+        </div>
         <div class="tblwrap"><table>
-          <thead><tr><th>නම</th><th>විෂය</th><th>දුරකථනය</th><th>විද්‍යුත් තැපෑල</th><th></th></tr></thead>
+          <thead><tr><th>NIC</th><th>නම</th><th>තනතුර</th><th>දුරකථනය</th><th>බැංකුව / ශාඛාව</th><th></th></tr></thead>
           <tbody id="teacherTable"></tbody>
         </table></div>
       </div>
@@ -392,47 +397,147 @@ window.deleteStudent = async function(id){
 };
 
 /* ---------- TEACHERS (admin only) ---------- */
+const TEACHER_FIELDS = [
+  {n:'nic', l:'ජාතික හැඳුනුම්පත් අංකය', req:1},
+  {n:'fullName', l:'සම්පූර්ණ නම', req:1},
+  {n:'address', l:'ලිපිනය', t:'textarea', span2:1},
+  {n:'dob', l:'උපන් දිනය', t:'date'},
+  {n:'gender', l:'ස්ත්‍රී/පුරුෂ භාවය', t:'select', o:['ස්ත්‍රී','පුරුෂ']},
+  {n:'phone', l:'දුරකථන අංකය', t:'tel'},
+  {n:'whatsapp', l:'Whatsapp අංකය', t:'tel'},
+  {n:'position', l:'තනතුර', t:'select', o:['ගුරු','ප්‍රධාන ගුරු','උප ගුරු','ක්‍රීඩා පුහුණුකරු','සංවර්ධන නිළධාරි','අනෙකුත්']},
+  {n:'grade', l:'ශ්‍රේණිය'},
+  {n:'firstAppointDate', l:'මුල්පත්වීම් දිනය', t:'date'},
+  {n:'schoolJoinDate', l:'මෙම විද්‍යාලයට පත් වූ දිනය', t:'date'},
+  {n:'eduQual', l:'අධ්‍යාපන සුදුසුකම්'},
+  {n:'profQual', l:'වෘත්තීය සුදුසුකම්'},
+  {n:'regNo', l:'ලේඛනයේ අංකය'},
+  {n:'worpNo', l:'වැන්දඹු/අනාථ අංකය'},
+  {n:'prevSchool', l:'මීට පෙර සේවය කළ පාසල', span2:1},
+  {n:'prevPeriod', l:'එම පාසලේ සේවය කළ කාලය'},
+  {n:'acctNo', l:'වැටුප් ලබන ගිණුම් අංකය'},
+  {n:'bank', l:'බැංකුව', t:'select', o:['මහජන බැංකුව','ලංකා බැංකුව','ජාතික ඉතිරිකිරීමේ බැංකුව','රාජ්‍ය උකස් හා ආයෝජන බැංකුව','අනෙකුත්']},
+  {n:'branch', l:'ශාඛාව'},
+];
+
+const teacherFieldsBox = document.getElementById('teacherFields');
+TEACHER_FIELDS.forEach(f=>{
+  const wrap = document.createElement('div');
+  if(f.span2) wrap.className = 'span2';
+  let inner = `<label for="tf_${f.n}">${f.l}</label>`;
+  if(f.t === 'select'){
+    inner += `<select id="tf_${f.n}"><option value="">තෝරන්න</option>${f.o.map(o=>`<option value="${o}">${o}</option>`).join('')}</select>`;
+  } else if(f.t === 'textarea'){
+    inner += `<textarea id="tf_${f.n}" rows="2"></textarea>`;
+  } else {
+    inner += `<input id="tf_${f.n}" type="${f.t||'text'}">`;
+  }
+  wrap.innerHTML = inner;
+  teacherFieldsBox.appendChild(wrap);
+});
+
+let teachersCache = [];
+
 async function loadTeachers(){
   const snap = await getDocs(collection(db,'teachers'));
-  document.getElementById('teacherTable').innerHTML = snap.docs.map(d=>{
-    const t = d.data();
-    return `<tr><td>${t.name||''}</td><td>${t.subject||''}</td><td>${t.phone||''}</td><td>${t.email||''}</td>
-      <td><button class="danger sm" onclick="deleteTeacher('${d.id}')">මකන්න</button></td></tr>`;
-  }).join('') || '<tr><td colspan="5" style="color:var(--ink-faint)">දත්ත නැත</td></tr>';
+  teachersCache = snap.docs.map(d=>({id:d.id, ...d.data()}));
+  renderTeachers();
 }
 
-window.addTeacher = async function(){
-  const name = document.getElementById('tName').value.trim();
-  const nic = document.getElementById('tNic').value.trim();
-  const subject = document.getElementById('tSubject').value.trim();
-  const phone = document.getElementById('tPhone').value.trim();
+window.renderTeachers = function(){
+  const q = (document.getElementById('teacherSearch').value||'').toLowerCase();
+  const rows = teachersCache.filter(t =>
+    !q || (t.fullName||'').toLowerCase().includes(q) || (t.nic||'').toLowerCase().includes(q)
+  );
+  document.getElementById('teacherTable').innerHTML = rows.map(t => `
+    <tr>
+      <td>${t.nic||''}</td>
+      <td>${t.fullName||''}</td>
+      <td>${t.position||''}</td>
+      <td>${t.phone||''}</td>
+      <td>${t.bank||''}${t.branch ? ' / ' + t.branch : ''}</td>
+      <td>
+        <button class="ghost sm" onclick="editTeacher('${t.id}')">සංස්කරණය</button>
+        <button class="danger sm" onclick="deleteTeacher('${t.id}')">මකන්න</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="6" style="color:var(--ink-faint)">දත්ත නැත</td></tr>';
+};
+
+window.saveTeacher = async function(){
+  const data = {};
+  TEACHER_FIELDS.forEach(f => data[f.n] = document.getElementById('tf_'+f.n).value.trim());
+  const missing = TEACHER_FIELDS.filter(f=>f.req && !data[f.n]);
+  if(missing.length){
+    showMsg('teacherMsg', 'අවශ්‍ය සියලු ක්ෂේත්‍ර පුරවන්න: ' + missing.map(f=>f.l).join(', '), false);
+    return;
+  }
+  const editId = document.getElementById('teacherEditId').value;
   const email = document.getElementById('tEmail').value.trim();
   const pass = document.getElementById('tPass').value;
-  if(!name){ showMsg('teacherMsg','නම අවශ්‍යයි', false); return; }
   try{
-    let uid = null;
-    if(email && pass){
-      // create login without disturbing the admin's own session, using a secondary app instance
-      const secondaryApp = initializeApp(firebaseConfig, 'secondary-' + Date.now());
-      const secondaryAuth = getAuth(secondaryApp);
-      const cred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
-      uid = cred.user.uid;
-      await authSignOut(secondaryAuth);
-      await setDoc(doc(db,'staff',uid), {name, email, role:'teacher'});
+    if(editId){
+      await updateDoc(doc(db,'teachers',editId), data);
+      showMsg('teacherMsg', 'යාවත්කාලීන කරන ලදී.', true);
+    } else {
+      let uid = null;
+      if(email && pass){
+        // create login without disturbing the admin's own session, using a secondary app instance
+        const secondaryApp = initializeApp(firebaseConfig, 'secondary-' + Date.now());
+        const secondaryAuth = getAuth(secondaryApp);
+        const cred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+        uid = cred.user.uid;
+        await authSignOut(secondaryAuth);
+        await setDoc(doc(db,'staff',uid), {name: data.fullName, email, role:'teacher'});
+      }
+      data.email = email;
+      data.uid = uid;
+      data.createdAt = serverTimestamp();
+      await addDoc(collection(db,'teachers'), data);
+      showMsg('teacherMsg', uid ? 'ගුරුවරයා සහ පිවිසුම් ගිණුම සාදන ලදී.' : 'ගුරුවරයා එකතු කරන ලදී (පිවිසුමකින් තොරව).', true);
     }
-    await addDoc(collection(db,'teachers'), {name, nic, subject, phone, email, uid, createdAt: serverTimestamp()});
-    showMsg('teacherMsg', uid ? 'ගුරුවරයා සහ පිවිසුම් ගිණුම සාදන ලදී.' : 'ගුරුවරයා එකතු කරන ලදී (පිවිසුමකින් තොරව).', true);
-    ['tName','tNic','tSubject','tPhone','tEmail','tPass'].forEach(id=>document.getElementById(id).value='');
+    resetTeacherForm();
     loadTeachers();
   }catch(err){
     showMsg('teacherMsg', 'දෝෂයක්: ' + err.message, false);
   }
 };
 
+window.editTeacher = function(id){
+  const t = teachersCache.find(x=>x.id===id);
+  if(!t) return;
+  TEACHER_FIELDS.forEach(f => document.getElementById('tf_'+f.n).value = t[f.n] || '');
+  document.getElementById('teacherEditId').value = id;
+  document.getElementById('teacherFormTitle').textContent = t.fullName + ' — සංස්කරණය';
+  document.getElementById('cancelTeacherEditBtn').style.display = 'inline-block';
+  window.scrollTo({top:0, behavior:'smooth'});
+};
+
+window.resetTeacherForm = function(){
+  TEACHER_FIELDS.forEach(f => document.getElementById('tf_'+f.n).value = '');
+  document.getElementById('tEmail').value = '';
+  document.getElementById('tPass').value = '';
+  document.getElementById('teacherEditId').value = '';
+  document.getElementById('teacherFormTitle').textContent = 'නව ගුරුවරයෙකු එක් කරන්න';
+  document.getElementById('cancelTeacherEditBtn').style.display = 'none';
+};
+
 window.deleteTeacher = async function(id){
   if(!confirm('ඉවත් කිරීමට විශ්වාසද?')) return;
   await deleteDoc(doc(db,'teachers',id));
   loadTeachers();
+};
+
+window.exportTeachersCSV = function(){
+  if(!teachersCache.length){ alert('අපනයනය කිරීමට වාර්තා නොමැත'); return; }
+  const headers = TEACHER_FIELDS.map(f=>f.n);
+  const rows = teachersCache.map(t => headers.map(h => `"${(t[h]||'').toString().replace(/"/g,'""')}"`).join(','));
+  const csv = headers.join(',') + '\n' + rows.join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'teacher-database.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 };
 
 /* ---------- MARKS (linked to student via index) ---------- */
