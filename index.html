@@ -3,404 +3,467 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ගුරු දත්ත ගබඩාව</title>
+<title>ධර්මරාජ විද්‍යාලය - කළමනාකරණ පද්ධතිය</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Sinhala:wght@600;700&family=Noto+Sans+Sinhala:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --blue:#4A90D9; --blue-dark:#3a76b3; --bg:#f4f6f9; --card:#ffffff;
-    --border:#d7dde5; --text:#28313c; --muted:#6b7684; --danger:#d9534f;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0; font-family:-apple-system,"Segoe UI",Roboto,"Noto Sans Sinhala",Arial,sans-serif;
-    background:var(--bg); color:var(--text);
-  }
-  header{
-    background:var(--blue); color:#fff; padding:16px 20px;
-    font-size:1.3rem; font-weight:600; text-align:center;
-  }
-  .wrap{max-width:960px; margin:0 auto; padding:16px;}
-  .card{
-    background:var(--card); border:1px solid var(--border); border-radius:10px;
-    padding:18px 20px; margin-bottom:18px;
-  }
-  .card h2{margin-top:0; font-size:1.05rem; color:var(--blue-dark);}
-  .grid{
-    display:grid; grid-template-columns:1fr 1fr; gap:14px 18px;
-  }
-  @media(max-width:640px){ .grid{grid-template-columns:1fr;} }
-  .field label{
-    display:block; font-size:0.85rem; color:var(--muted); margin-bottom:4px;
-  }
-  .field input, .field select, .field textarea{
-    width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:6px;
-    font-size:0.95rem; background:#fff; color:var(--text);
-  }
-  .field input:focus, .field select:focus, .field textarea:focus{
-    outline:none; border-color:var(--blue);
-  }
-  .span2{grid-column:1 / -1;}
-  .btn-row{
-    display:flex; gap:10px; justify-content:flex-end; margin-top:16px;
-  }
-  button{
-    cursor:pointer; border:none; border-radius:6px; padding:10px 18px;
-    font-size:0.95rem; font-weight:600;
-  }
-  .btn-primary{background:var(--blue); color:#fff;}
-  .btn-primary:hover{background:var(--blue-dark);}
-  .btn-secondary{background:#e7ebf0; color:var(--text);}
-  .btn-secondary:hover{background:#dbe0e6;}
-  .btn-danger{background:var(--danger); color:#fff; padding:6px 10px; font-size:0.8rem;}
-  .btn-small{padding:6px 10px; font-size:0.8rem;}
-  table{
-    width:100%; border-collapse:collapse; font-size:0.85rem;
-  }
-  th, td{
-    border:1px solid var(--border); padding:8px; text-align:left; vertical-align:top;
-  }
-  th{background:#eef2f7; color:var(--blue-dark); position:sticky; top:0;}
-  .table-scroll{overflow-x:auto;}
-  .toolbar{
-    display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between;
-    align-items:center; margin-bottom:12px;
-  }
-  .search{flex:1; min-width:180px;}
-  .search input{
-    width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:6px;
-  }
-  .empty{color:var(--muted); text-align:center; padding:24px; font-style:italic;}
-  .count{color:var(--muted); font-size:0.85rem;}
-  .actions-cell{white-space:nowrap;}
-  .actions-cell button{margin-right:4px;}
+:root{
+  --maroon:#7A0F2E; --maroon-dark:#4A0000; --gold:#C9911A;
+  --bg:#F4ECEA; --card:#FFFFFF; --ink:#241417; --muted:#6B5B5E;
+  --line:#EBE0DE; --danger:#B03A2E; --ok:#1A7A60;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:'Noto Sans Sinhala',system-ui,sans-serif;background:var(--bg);color:var(--ink);}
+h1,h2,h3{font-family:'Noto Serif Sinhala',serif;}
+button{cursor:pointer;font-family:inherit;border:none;border-radius:8px;font-weight:600;}
+input,select,textarea{font-family:inherit;width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px;font-size:.95rem;background:#fff;color:var(--ink);}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--maroon);}
+
+/* ---- Login ---- */
+#loginView{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(150deg,var(--maroon-dark),var(--maroon));padding:20px;}
+.login-card{background:#fff;border-radius:14px;max-width:380px;width:100%;padding:32px 26px;
+  box-shadow:0 20px 50px rgba(0,0,0,.35);text-align:center;border-top:5px solid var(--gold);}
+.login-card h1{font-size:1.3rem;color:var(--maroon);margin:0 0 4px;}
+.login-card p.sub{color:var(--muted);font-size:.85rem;margin:0 0 22px;}
+.f{margin-bottom:14px;text-align:right;}
+.f label{display:block;font-size:.82rem;color:var(--muted);margin-bottom:5px;font-weight:500;}
+.btn-primary{width:100%;padding:12px;background:var(--maroon);color:#fff;font-size:.95rem;}
+.btn-primary:hover{background:var(--maroon-dark);}
+.btn-primary:disabled{background:#c9b3ba;cursor:not-allowed;}
+.err{color:var(--danger);font-size:.82rem;margin-top:10px;min-height:1em;}
+
+/* ---- App shell ---- */
+#appView{display:none;min-height:100vh;}
+header{background:var(--maroon);color:#fff;padding:14px 20px;display:flex;align-items:center;
+  justify-content:space-between;flex-wrap:wrap;gap:10px;}
+header h1{font-size:1.05rem;margin:0;}
+header .who{font-size:.8rem;opacity:.85;}
+.btn-logout{background:rgba(255,255,255,.15);color:#fff;padding:7px 14px;font-size:.82rem;}
+.btn-logout:hover{background:rgba(255,255,255,.28);}
+nav.tabs{display:flex;gap:6px;background:#fff;border-bottom:1px solid var(--line);padding:0 16px;
+  overflow-x:auto;}
+nav.tabs button{background:none;color:var(--muted);padding:13px 16px;font-size:.9rem;
+  border-bottom:3px solid transparent;white-space:nowrap;}
+nav.tabs button.active{color:var(--maroon);border-color:var(--maroon);}
+.wrap{max-width:1000px;margin:0 auto;padding:18px 16px 60px;}
+.tabpanel{display:none;}
+.tabpanel.active{display:block;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-bottom:18px;}
+.card h2{margin-top:0;font-size:1.02rem;color:var(--maroon);}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;}
+@media(max-width:640px){.grid{grid-template-columns:1fr;}}
+.span2{grid-column:1/-1;}
+.btn-row{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;}
+.btn-secondary{background:#e7ebf0;color:var(--ink);padding:10px 16px;font-size:.9rem;}
+.btn-secondary:hover{background:#dbe0e6;}
+.btn-save{background:var(--maroon);color:#fff;padding:10px 18px;font-size:.9rem;}
+.btn-save:hover{background:var(--maroon-dark);}
+table{width:100%;border-collapse:collapse;font-size:.83rem;}
+th,td{border:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top;}
+th{background:#f6eeee;color:var(--maroon-dark);position:sticky;top:0;}
+.table-scroll{overflow-x:auto;max-height:60vh;overflow-y:auto;}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.toolbar .search{flex:1;min-width:180px;}
+.count{color:var(--muted);font-size:.82rem;margin-bottom:8px;}
+.empty{color:var(--muted);text-align:center;padding:22px;font-style:italic;}
+.btn-edit{background:#e7ebf0;color:var(--ink);padding:5px 9px;font-size:.78rem;margin-right:4px;}
+.btn-del{background:var(--danger);color:#fff;padding:5px 9px;font-size:.78rem;}
+.status{position:fixed;bottom:14px;right:14px;background:var(--ok);color:#fff;padding:8px 16px;
+  border-radius:8px;font-size:.82rem;opacity:0;transform:translateY(10px);transition:.25s;z-index:50;}
+.status.show{opacity:1;transform:translateY(0);}
+.status.error{background:var(--danger);}
 </style>
 </head>
 <body>
 
-<header>ගුරු දත්ත ගබඩාව / Teacher Database</header>
-
-<div class="wrap">
-
-  <div class="card">
-    <h2 id="formTitle">නව ගුරුවරයෙකු එක් කරන්න (Add New Teacher)</h2>
-    <form id="teacherForm">
-      <input type="hidden" id="recordId">
-      <div class="grid">
-
-        <div class="field">
-          <label>ජාතික හැඳුනුම්පත් අංකය * (NIC No.)</label>
-          <input type="text" id="nic" required>
-        </div>
-
-        <div class="field">
-          <label>සම්පූර්ණ නම (Full Name) *</label>
-          <input type="text" id="fullName" required>
-        </div>
-
-        <div class="field span2">
-          <label>ලිපිනය (Address)</label>
-          <textarea id="address" rows="2"></textarea>
-        </div>
-
-        <div class="field">
-          <label>උපන් දිනය (Date of Birth)</label>
-          <input type="date" id="dob">
-        </div>
-
-        <div class="field">
-          <label>ස්ත්‍රී/පුරුෂ භාවය (Gender)</label>
-          <select id="gender">
-            <option value="">-- තෝරන්න --</option>
-            <option value="ස්ත්‍රී">ස්ත්‍රී (Female)</option>
-            <option value="පුරුෂ">පුරුෂ (Male)</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label>දුරකථන අංකය (Phone No.)</label>
-          <input type="tel" id="phone">
-        </div>
-
-        <div class="field">
-          <label>Whatsapp අංකය (WhatsApp No.)</label>
-          <input type="tel" id="whatsapp">
-        </div>
-
-        <div class="field">
-          <label>තනතුර (Position)</label>
-          <select id="position">
-            <option value="">-- තෝරන්න --</option>
-            <option value="ගුරු">ගුරු (Teacher)</option>
-            <option value="ප්‍රධාන ගුරු">ප්‍රධාන ගුරු (Head Teacher)</option>
-            <option value="උප ගුරු">උප ගුරු (Deputy)</option>
-            <option value="ක්‍රීඩා පුහුණුකරු">ක්‍රීඩා පුහුණුකරු (Sports Coach)</option>
-            <option value="සංවර්ධන නිළධාරි">සංවර්ධන නිළධාරි (Development Officer)</option>
-            <option value="අනෙකුත්">අනෙකුත් (Other)</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label>ශ්‍රේණිය (Grade / Class)</label>
-          <input type="text" id="grade">
-        </div>
-
-        <div class="field">
-          <label>මුල්පත්වීම් දිනය (First Appointment Date)</label>
-          <input type="date" id="firstAppointDate">
-        </div>
-
-        <div class="field">
-          <label>මෙම විද්‍යාලයට පත් වූ දිනය (Date Joined This School)</label>
-          <input type="date" id="schoolJoinDate">
-        </div>
-
-        <div class="field">
-          <label>අධ්‍යාපන සුදුසුකම් (Educational Qualifications)</label>
-          <input type="text" id="eduQual">
-        </div>
-
-        <div class="field">
-          <label>වෘත්තීය සුදුසුකම් (Professional Qualifications)</label>
-          <input type="text" id="profQual">
-        </div>
-
-        <div class="field">
-          <label>ලේඛනයේ අංකය (Register No.)</label>
-          <input type="text" id="regNo">
-        </div>
-
-        <div class="field">
-          <label>වැන්දඹු/අනාථ අංකය (Widows'/Orphans' No.)</label>
-          <input type="text" id="worpNo">
-        </div>
-
-        <div class="field span2">
-          <label>මීට පෙර සේවය කළ පාසල (Previous School)</label>
-          <input type="text" id="prevSchool">
-        </div>
-
-        <div class="field">
-          <label>එම පාසලේ සේවය කළ කාලය (Period Served There)</label>
-          <input type="text" id="prevPeriod">
-        </div>
-
-        <div class="field">
-          <label>වැටුප් ලබන ගිණුම් අංකය (Salary Account No.)</label>
-          <input type="text" id="acctNo">
-        </div>
-
-        <div class="field">
-          <label>බැංකුව (Bank)</label>
-          <select id="bank">
-            <option value="">-- තෝරන්න --</option>
-            <option value="මහජන බැංකුව">මහජන බැංකුව (People's Bank)</option>
-            <option value="ලංකා බැංකුව">ලංකා බැංකුව (Bank of Ceylon)</option>
-            <option value="ජාතික ඉතිරිකිරීමේ බැංකුව">ජාතික ඉතිරිකිරීමේ බැංකුව (NSB)</option>
-            <option value="රාජ්‍ය උකස් හා ආයෝජන බැංකුව">රාජ්‍ය උකස් හා ආයෝජන බැංකුව (SMIB)</option>
-            <option value="අනෙකුත්">අනෙකුත් (Other)</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label>ශාඛාව (Branch)</label>
-          <input type="text" id="branch">
-        </div>
-
+<!-- ===================== LOGIN ===================== -->
+<div id="loginView">
+  <div class="login-card">
+    <h1>ධර්මරාජ විද්‍යාලය</h1>
+    <p class="sub">කාර්ය මණ්ඩල කළමනාකරණ පද්ධතිය — පිවිසෙන්න</p>
+    <form id="loginForm">
+      <div class="f">
+        <label>විද්‍යුත් තැපෑල (Email)</label>
+        <input type="email" id="loginEmail" required>
       </div>
-
-      <div class="btn-row">
-        <button type="button" class="btn-secondary" id="cancelBtn">Cancel</button>
-        <button type="submit" class="btn-primary" id="saveBtn">Save</button>
+      <div class="f">
+        <label>මුරපදය (Password)</label>
+        <input type="password" id="loginPassword" required>
       </div>
+      <button type="submit" class="btn-primary" id="loginBtn">පිවිසෙන්න (Login)</button>
+      <div class="err" id="loginErr"></div>
     </form>
   </div>
-
-  <div class="card">
-    <div class="toolbar">
-      <h2 style="margin:0;">ගුරු ලේඛනය (Teacher Records)</h2>
-      <div class="search">
-        <input type="text" id="searchBox" placeholder="නම හෝ හැඳුනුම්පත් අංකයෙන් සොයන්න... (Search by name or NIC)">
-      </div>
-      <div>
-        <button class="btn-secondary btn-small" id="exportBtn">Export CSV</button>
-      </div>
-    </div>
-    <div class="count" id="countLabel"></div>
-    <div class="table-scroll">
-      <table id="recordsTable">
-        <thead>
-          <tr>
-            <th>NIC</th>
-            <th>නම</th>
-            <th>තනතුර</th>
-            <th>දුරකථනය</th>
-            <th>බැංකුව / ශාඛාව</th>
-            <th>ක්‍රියා</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-    </div>
-    <div class="empty" id="emptyMsg" style="display:none;">තවම වාර්තා නොමැත (No records yet)</div>
-  </div>
-
 </div>
 
-<script>
-const STORAGE_KEY = 'teacherDatabaseRecords';
-const fieldIds = ['nic','fullName','address','dob','gender','phone','whatsapp','position','grade',
+<!-- ===================== APP ===================== -->
+<div id="appView">
+  <header>
+    <h1>ධර්මරාජ විද්‍යාලය — කළමනාකරණ පද්ධතිය</h1>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <span class="who" id="whoLabel"></span>
+      <button class="btn-logout" id="logoutBtn">ඉවත් වන්න (Logout)</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button data-tab="teachers" class="active">ගුරු දත්ත ගබඩාව (Teachers)</button>
+    <button data-tab="students">සිසු ලේඛනය (Students)</button>
+  </nav>
+
+  <div class="wrap">
+
+    <!-- ---------- TEACHERS TAB ---------- -->
+    <section class="tabpanel active" id="tab-teachers">
+      <div class="card">
+        <h2 id="teacherFormTitle">නව ගුරුවරයෙකු එක් කරන්න (Add Teacher)</h2>
+        <form id="teacherForm">
+          <input type="hidden" id="t_docId">
+          <div class="grid">
+            <div class="f field"><label>ජාතික හැඳුනුම්පත් අංකය * (NIC)</label><input id="t_nic" required></div>
+            <div class="f field"><label>සම්පූර්ණ නම * (Full Name)</label><input id="t_fullName" required></div>
+            <div class="f field span2"><label>ලිපිනය (Address)</label><textarea id="t_address" rows="2"></textarea></div>
+            <div class="f field"><label>උපන් දිනය (DOB)</label><input type="date" id="t_dob"></div>
+            <div class="f field"><label>ස්ත්‍රී/පුරුෂ භාවය</label>
+              <select id="t_gender"><option value="">-- තෝරන්න --</option><option>ස්ත්‍රී</option><option>පුරුෂ</option></select></div>
+            <div class="f field"><label>දුරකථන අංකය (Phone)</label><input type="tel" id="t_phone"></div>
+            <div class="f field"><label>WhatsApp අංකය</label><input type="tel" id="t_whatsapp"></div>
+            <div class="f field"><label>තනතුර (Position)</label>
+              <select id="t_position"><option value="">-- තෝරන්න --</option>
+                <option>ගුරු</option><option>ප්‍රධාන ගුරු</option><option>උප ගුරු</option>
+                <option>ක්‍රීඩා පුහුණුකරු</option><option>සංවර්ධන නිළධාරි</option><option>අනෙකුත්</option></select></div>
+            <div class="f field"><label>ශ්‍රේණිය (Grade)</label><input id="t_grade"></div>
+            <div class="f field"><label>මුල්පත්වීම් දිනය</label><input type="date" id="t_firstAppointDate"></div>
+            <div class="f field"><label>විද්‍යාලයට පත් වූ දිනය</label><input type="date" id="t_schoolJoinDate"></div>
+            <div class="f field"><label>අධ්‍යාපන සුදුසුකම්</label><input id="t_eduQual"></div>
+            <div class="f field"><label>වෘත්තීය සුදුසුකම්</label><input id="t_profQual"></div>
+            <div class="f field"><label>ලේඛන අංකය (Reg No.)</label><input id="t_regNo"></div>
+            <div class="f field"><label>වැන්දඹු/අනාථ අංකය</label><input id="t_worpNo"></div>
+            <div class="f field span2"><label>මීට පෙර සේවය කළ පාසල</label><input id="t_prevSchool"></div>
+            <div class="f field"><label>එම පාසලේ සේවය කළ කාලය</label><input id="t_prevPeriod"></div>
+            <div class="f field"><label>ගිණුම් අංකය (Salary Acct.)</label><input id="t_acctNo"></div>
+            <div class="f field"><label>බැංකුව</label>
+              <select id="t_bank"><option value="">-- තෝරන්න --</option>
+                <option>මහජන බැංකුව</option><option>ලංකා බැංකුව</option>
+                <option>ජාතික ඉතිරිකිරීමේ බැංකුව</option><option>රාජ්‍ය උකස් හා ආයෝජන බැංකුව</option>
+                <option>අනෙකුත්</option></select></div>
+            <div class="f field"><label>ශාඛාව (Branch)</label><input id="t_branch"></div>
+          </div>
+          <div class="btn-row">
+            <button type="button" class="btn-secondary" id="t_cancel">Cancel</button>
+            <button type="submit" class="btn-save" id="t_save">Save</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="toolbar">
+          <h2 style="margin:0;">ගුරු ලේඛනය</h2>
+          <div class="search"><input id="t_search" placeholder="නම හෝ NIC අංකයෙන් සොයන්න..."></div>
+          <button class="btn-secondary" id="t_export">Export CSV</button>
+        </div>
+        <div class="count" id="t_count"></div>
+        <div class="table-scroll">
+          <table><thead><tr><th>NIC</th><th>නම</th><th>තනතුර</th><th>දුරකථනය</th><th>බැංකුව</th><th>ක්‍රියා</th></tr></thead>
+          <tbody id="t_tbody"></tbody></table>
+        </div>
+        <div class="empty" id="t_empty" style="display:none;">තවම වාර්තා නොමැත</div>
+      </div>
+    </section>
+
+    <!-- ---------- STUDENTS TAB ---------- -->
+    <section class="tabpanel" id="tab-students">
+      <div class="card">
+        <h2 id="studentFormTitle">නව සිසුවෙකු ලියාපදිංචි කරන්න (Add Student)</h2>
+        <form id="studentForm">
+          <input type="hidden" id="s_docId">
+          <div class="grid">
+            <div class="f field"><label>ඇතුළත් වීමේ අංකය (Admission No.) *</label><input id="s_admissionNo" required></div>
+            <div class="f field"><label>ශිෂ්‍ය නම - සිංහල</label><input id="s_childNameSinhala" required></div>
+            <div class="f field"><label>ශිෂ්‍ය නම - English</label><input id="s_childNameEnglish"></div>
+            <div class="f field"><label>මුලකුරු සමග නම (සිංහල)</label><input id="s_initialsNameSinhala"></div>
+            <div class="f field"><label>මුලකුරු සමග නම (English)</label><input id="s_initialsNameEnglish"></div>
+            <div class="f field"><label>උපන් දිනය</label><input type="date" id="s_birthDate"></div>
+            <div class="f field"><label>උප්පැන්න සහතික අංකය</label><input id="s_birthCertNo"></div>
+            <div class="f field"><label>ජාතික හැඳුනුම්පත් අංකය</label><input id="s_nicNo"></div>
+            <div class="f field"><label>ශ්‍රේණිය (Grade No.)</label><input id="s_gradeNumber"></div>
+            <div class="f field"><label>පන්තිය (Class)</label><input id="s_className"></div>
+            <div class="f field"><label>ජාතිකත්වය (Ethnicity)</label>
+              <select id="s_ethnicity"><option value="">-- තෝරන්න --</option>
+                <option>සිංහල</option><option>දෙමළ</option><option>මුස්ලිම්</option><option>අනෙකුත්</option></select></div>
+            <div class="f field"><label>ආගම (Religion)</label>
+              <select id="s_religion"><option value="">-- තෝරන්න --</option>
+                <option>බුද්ධාගම</option><option>හින්දු</option><option>ඉස්ලාම්</option><option>ක්‍රිස්තියානි</option><option>අනෙකුත්</option></select></div>
+            <div class="f field"><label>පියාගේ නම</label><input id="s_fatherName"></div>
+            <div class="f field"><label>පියාගේ රැකියාව</label><input id="s_fatherOccupation"></div>
+            <div class="f field"><label>පියාගේ දුරකථනය</label><input type="tel" id="s_fatherPhone"></div>
+            <div class="f field"><label>මවගේ නම</label><input id="s_motherName"></div>
+            <div class="f field"><label>මවගේ රැකියාව</label><input id="s_motherOccupation"></div>
+            <div class="f field"><label>මවගේ දුරකථනය</label><input type="tel" id="s_motherPhone"></div>
+            <div class="f field"><label>භාරකරු නම (Declarant)</label><input id="s_declarantName"></div>
+            <div class="f field"><label>සම්බන්ධතාවය (Relationship)</label><input id="s_relationship"></div>
+            <div class="f field"><label>සම්බන්ධ වීමේ දුරකථනය</label><input type="tel" id="s_contactPhone"></div>
+            <div class="f field"><label>ප්‍රවාහන ක්‍රමය (Transport)</label><input id="s_transport"></div>
+            <div class="f field span2"><label>වෛද්‍ය කරුණු / විශේෂ තොරතුරු</label><textarea id="s_medicalReason" rows="2"></textarea></div>
+          </div>
+          <div class="btn-row">
+            <button type="button" class="btn-secondary" id="s_cancel">Cancel</button>
+            <button type="submit" class="btn-save" id="s_save">Save</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="toolbar">
+          <h2 style="margin:0;">සිසු ලේඛනය</h2>
+          <div class="search"><input id="s_search" placeholder="නම හෝ ඇතුළත් වීමේ අංකයෙන් සොයන්න..."></div>
+          <button class="btn-secondary" id="s_export">Export CSV</button>
+        </div>
+        <div class="count" id="s_count"></div>
+        <div class="table-scroll">
+          <table><thead><tr><th>Adm. No</th><th>නම</th><th>ශ්‍රේණිය/පන්තිය</th><th>පියාගේ දුරකථනය</th><th>ක්‍රියා</th></tr></thead>
+          <tbody id="s_tbody"></tbody></table>
+        </div>
+        <div class="empty" id="s_empty" style="display:none;">තවම වාර්තා නොමැත</div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<div class="status" id="statusBox"></div>
+
+<!-- Firebase (modular SDK, official CDN) -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+import {
+  getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+import {
+  getFirestore, collection, addDoc, setDoc, doc, deleteDoc,
+  onSnapshot, query, orderBy
+} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBPPaWvOSTWeflv9ucnBoyQbZARDw6pSJU",
+  authDomain: "demis-9e3c8.firebaseapp.com",
+  projectId: "demis-9e3c8",
+  storageBucket: "demis-9e3c8.firebasestorage.app",
+  messagingSenderId: "727272188704",
+  appId: "1:727272188704:web:4f3894c1bb52e8b2a20545"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ---------- helpers ----------
+function showStatus(msg, isError){
+  const box = document.getElementById('statusBox');
+  box.textContent = msg;
+  box.className = 'status show' + (isError ? ' error' : '');
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(()=>{ box.className = 'status'; }, 2600);
+}
+function escapeHtml(str){
+  if(str === undefined || str === null) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+function csvDownload(filename, headers, rows){
+  const csv = headers.join(',') + '\n' + rows.map(r =>
+    headers.map(h => `"${(r[h]||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+// ---------- auth ----------
+const loginView = document.getElementById('loginView');
+const appView = document.getElementById('appView');
+const loginForm = document.getElementById('loginForm');
+const loginErr = document.getElementById('loginErr');
+const loginBtn = document.getElementById('loginBtn');
+
+loginForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  loginErr.textContent = '';
+  loginBtn.disabled = true; loginBtn.textContent = 'පිවිසෙමින්...';
+  try{
+    await signInWithEmailAndPassword(auth,
+      document.getElementById('loginEmail').value.trim(),
+      document.getElementById('loginPassword').value);
+  }catch(err){
+    loginErr.textContent = 'පිවිසීම අසාර්ථකයි — ඊමේල් / මුරපදය පරීක්ෂා කරන්න (' + err.code + ')';
+  }finally{
+    loginBtn.disabled = false; loginBtn.textContent = 'පිවිසෙන්න (Login)';
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', ()=> signOut(auth));
+
+onAuthStateChanged(auth, (user)=>{
+  if(user){
+    loginView.style.display = 'none';
+    appView.style.display = 'block';
+    document.getElementById('whoLabel').textContent = user.email;
+  }else{
+    appView.style.display = 'none';
+    loginView.style.display = 'flex';
+  }
+});
+
+// ---------- tabs ----------
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tabpanel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ---------- generic CRUD wiring for a collection ----------
+function wireCollection(cfg){
+  const { colName, fieldIds, prefix, sortField, searchFields, formEl, tbody, empty,
+          countEl, searchEl, cancelBtn, formTitle, saveBtn, defaultTitle, editTitle,
+          exportBtn, renderRow } = cfg;
+
+  let records = [];
+
+  function resetForm(){
+    formEl.reset();
+    document.getElementById(prefix + '_docId').value = '';
+    formTitle.textContent = defaultTitle;
+    saveBtn.textContent = 'Save';
+  }
+
+  function render(filter){
+    const q = (filter || '').trim().toLowerCase();
+    const filtered = records.filter(r=>{
+      if(!q) return true;
+      return searchFields.some(f => (r[f]||'').toLowerCase().includes(q));
+    });
+    tbody.innerHTML = '';
+    empty.style.display = filtered.length === 0 ? 'block' : 'none';
+    filtered.forEach(r => tbody.appendChild(renderRow(r)));
+    countEl.textContent = `මුළු වාර්තා ගණන: ${records.length}` +
+      (q ? ` — ${filtered.length} matching` : '');
+  }
+
+  onSnapshot(query(collection(db, colName), orderBy(sortField)), (snap)=>{
+    records = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    render(searchEl.value);
+  }, (err)=> showStatus('දත්ත ලබාගැනීමේ දෝෂයක්: ' + err.message, true));
+
+  formEl.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const docId = document.getElementById(prefix + '_docId').value;
+    const rec = {};
+    fieldIds.forEach(fid => { rec[fid] = document.getElementById(prefix + '_' + fid).value.trim(); });
+    try{
+      if(docId){
+        await setDoc(doc(db, colName, docId), rec, { merge: true });
+      }else{
+        await addDoc(collection(db, colName), rec);
+      }
+      showStatus('සුරැකින ලදී (Saved)');
+      resetForm();
+    }catch(err){ showStatus('සුරැකීමේ දෝෂයක්: ' + err.message, true); }
+  });
+
+  cancelBtn.addEventListener('click', resetForm);
+
+  tbody.addEventListener('click', async (e)=>{
+    const editId = e.target.getAttribute('data-edit');
+    const delId = e.target.getAttribute('data-del');
+    if(editId){
+      const rec = records.find(r=>r.id === editId);
+      if(!rec) return;
+      document.getElementById(prefix + '_docId').value = rec.id;
+      fieldIds.forEach(fid=>{
+        const el = document.getElementById(prefix + '_' + fid);
+        if(el) el.value = rec[fid] || '';
+      });
+      formTitle.textContent = editTitle;
+      saveBtn.textContent = 'Update';
+      window.scrollTo({top:0, behavior:'smooth'});
+    }
+    if(delId){
+      if(confirm('මෙම වාර්තාව මකා දමන්නද?')){
+        try{ await deleteDoc(doc(db, colName, delId)); showStatus('මකා දමන ලදී'); }
+        catch(err){ showStatus('මකාදැමීමේ දෝෂයක්: ' + err.message, true); }
+      }
+    }
+  });
+
+  searchEl.addEventListener('input', ()=> render(searchEl.value));
+
+  exportBtn.addEventListener('click', ()=>{
+    if(records.length === 0){ showStatus('අපනයනය කිරීමට වාර්තා නොමැත', true); return; }
+    csvDownload(colName + '.csv', fieldIds, records);
+  });
+}
+
+// ---------- Teachers ----------
+const teacherFieldIds = ['nic','fullName','address','dob','gender','phone','whatsapp','position','grade',
   'firstAppointDate','schoolJoinDate','eduQual','profQual','regNo','worpNo','prevSchool',
   'prevPeriod','acctNo','bank','branch'];
 
-function loadRecords(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  }catch(e){
-    console.error('Load error', e);
-    return [];
-  }
-}
-
-function saveRecords(records){
-  try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-  }catch(e){
-    console.error('Save error', e);
-    alert('දත්ත සුරැකීමේ දෝෂයක් (Error saving data)');
-  }
-}
-
-let records = loadRecords();
-
-const form = document.getElementById('teacherForm');
-const tableBody = document.getElementById('tableBody');
-const emptyMsg = document.getElementById('emptyMsg');
-const countLabel = document.getElementById('countLabel');
-const searchBox = document.getElementById('searchBox');
-const formTitle = document.getElementById('formTitle');
-const saveBtn = document.getElementById('saveBtn');
-const cancelBtn = document.getElementById('cancelBtn');
-
-function resetForm(){
-  form.reset();
-  document.getElementById('recordId').value = '';
-  formTitle.textContent = 'නව ගුරුවරයෙකු එක් කරන්න (Add New Teacher)';
-  saveBtn.textContent = 'Save';
-}
-
-function render(filter){
-  const q = (filter || '').trim().toLowerCase();
-  const filtered = records.filter(r=>{
-    if(!q) return true;
-    return (r.fullName||'').toLowerCase().includes(q) || (r.nic||'').toLowerCase().includes(q);
-  });
-
-  tableBody.innerHTML = '';
-  if(filtered.length === 0){
-    emptyMsg.style.display = 'block';
-  }else{
-    emptyMsg.style.display = 'none';
-  }
-
-  filtered.forEach(r=>{
+wireCollection({
+  colName: 'teachers', fieldIds: teacherFieldIds, prefix: 't', sortField: 'fullName',
+  searchFields: ['fullName','nic'],
+  formEl: document.getElementById('teacherForm'),
+  tbody: document.getElementById('t_tbody'),
+  empty: document.getElementById('t_empty'),
+  countEl: document.getElementById('t_count'),
+  searchEl: document.getElementById('t_search'),
+  cancelBtn: document.getElementById('t_cancel'),
+  formTitle: document.getElementById('teacherFormTitle'),
+  saveBtn: document.getElementById('t_save'),
+  defaultTitle: 'නව ගුරුවරයෙකු එක් කරන්න (Add Teacher)',
+  editTitle: 'ගුරුවරයාගේ තොරතුරු සංස්කරණය (Edit Teacher)',
+  exportBtn: document.getElementById('t_export'),
+  renderRow: (r)=>{
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${escapeHtml(r.nic)}</td>
-      <td>${escapeHtml(r.fullName)}</td>
-      <td>${escapeHtml(r.position)}</td>
-      <td>${escapeHtml(r.phone)}</td>
-      <td>${escapeHtml(r.bank)}${r.branch ? ' / ' + escapeHtml(r.branch) : ''}</td>
-      <td class="actions-cell">
-        <button class="btn-secondary btn-small" data-edit="${r.id}">Edit</button>
-        <button class="btn-danger" data-del="${r.id}">Delete</button>
-      </td>
-    `;
-    tableBody.appendChild(tr);
-  });
-
-  countLabel.textContent = `මුළු වාර්තා ගණන (Total): ${records.length}` +
-    (q ? ` — ${filtered.length} matching search` : '');
-}
-
-function escapeHtml(str){
-  if(str === undefined || str === null) return '';
-  return String(str)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
-}
-
-form.addEventListener('submit', function(e){
-  e.preventDefault();
-  const id = document.getElementById('recordId').value || String(Date.now());
-  const rec = { id };
-  fieldIds.forEach(fid=>{
-    rec[fid] = document.getElementById(fid).value.trim();
-  });
-
-  const existingIndex = records.findIndex(r=>r.id === id);
-  if(existingIndex >= 0){
-    records[existingIndex] = rec;
-  }else{
-    records.push(rec);
-  }
-  saveRecords(records);
-  resetForm();
-  render(searchBox.value);
-});
-
-cancelBtn.addEventListener('click', resetForm);
-
-tableBody.addEventListener('click', function(e){
-  const editId = e.target.getAttribute('data-edit');
-  const delId = e.target.getAttribute('data-del');
-
-  if(editId){
-    const rec = records.find(r=>r.id === editId);
-    if(!rec) return;
-    document.getElementById('recordId').value = rec.id;
-    fieldIds.forEach(fid=>{
-      const el = document.getElementById(fid);
-      if(el) el.value = rec[fid] || '';
-    });
-    formTitle.textContent = 'ගුරුවරයාගේ තොරතුරු සංස්කරණය (Edit Teacher)';
-    saveBtn.textContent = 'Update';
-    window.scrollTo({top:0, behavior:'smooth'});
-  }
-
-  if(delId){
-    if(confirm('මෙම වාර්තාව මකා දමන්නද? (Delete this record?)')){
-      records = records.filter(r=>r.id !== delId);
-      saveRecords(records);
-      render(searchBox.value);
-    }
+    tr.innerHTML = `<td>${escapeHtml(r.nic)}</td><td>${escapeHtml(r.fullName)}</td>
+      <td>${escapeHtml(r.position)}</td><td>${escapeHtml(r.phone)}</td><td>${escapeHtml(r.bank)}</td>
+      <td><button class="btn-edit" data-edit="${r.id}">Edit</button><button class="btn-del" data-del="${r.id}">Delete</button></td>`;
+    return tr;
   }
 });
 
-searchBox.addEventListener('input', function(){
-  render(searchBox.value);
-});
+// ---------- Students ----------
+const studentFieldIds = ['admissionNo','childNameSinhala','childNameEnglish','initialsNameSinhala',
+  'initialsNameEnglish','birthDate','birthCertNo','nicNo','gradeNumber','className','ethnicity',
+  'religion','fatherName','fatherOccupation','fatherPhone','motherName','motherOccupation','motherPhone',
+  'declarantName','relationship','contactPhone','transport','medicalReason'];
 
-document.getElementById('exportBtn').addEventListener('click', function(){
-  if(records.length === 0){
-    alert('අපනයනය කිරීමට වාර්තා නොමැත (No records to export)');
-    return;
+wireCollection({
+  colName: 'students', fieldIds: studentFieldIds, prefix: 's', sortField: 'childNameSinhala',
+  searchFields: ['childNameSinhala','childNameEnglish','admissionNo'],
+  formEl: document.getElementById('studentForm'),
+  tbody: document.getElementById('s_tbody'),
+  empty: document.getElementById('s_empty'),
+  countEl: document.getElementById('s_count'),
+  searchEl: document.getElementById('s_search'),
+  cancelBtn: document.getElementById('s_cancel'),
+  formTitle: document.getElementById('studentFormTitle'),
+  saveBtn: document.getElementById('s_save'),
+  defaultTitle: 'නව සිසුවෙකු ලියාපදිංචි කරන්න (Add Student)',
+  editTitle: 'සිසුවාගේ තොරතුරු සංස්කරණය (Edit Student)',
+  exportBtn: document.getElementById('s_export'),
+  renderRow: (r)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${escapeHtml(r.admissionNo)}</td><td>${escapeHtml(r.childNameSinhala)}</td>
+      <td>${escapeHtml(r.gradeNumber)} ${escapeHtml(r.className)}</td><td>${escapeHtml(r.fatherPhone)}</td>
+      <td><button class="btn-edit" data-edit="${r.id}">Edit</button><button class="btn-del" data-del="${r.id}">Delete</button></td>`;
+    return tr;
   }
-  const headers = fieldIds;
-  const rows = records.map(r => headers.map(h => `"${(r[h]||'').replace(/"/g,'""')}"`).join(','));
-  const csv = headers.join(',') + '\n' + rows.join('\n');
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'teacher-database.csv';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 });
-
-render('');
 </script>
-
 </body>
 </html>
