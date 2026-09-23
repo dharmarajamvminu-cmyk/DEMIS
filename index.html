@@ -215,10 +215,11 @@ th{background:#f6eeee;color:var(--maroon-dark);position:sticky;top:0;}
             <div class="f field"><label>මුලකුරු සමග නම (English)</label><input id="s_initialsNameEnglish" class="uppercase-input" autocapitalize="characters"></div>
             <div class="f field"><label>උපන් දිනය</label><input type="date" id="s_birthDate"></div>
             <div class="f field"><label>වයස (Age)</label><input id="s_age" readonly style="background:#f3f1f1;"></div>
+            <div class="f field span2"><label>ලිපිනය (Address)</label><textarea id="s_address" rows="2"></textarea></div>
             <div class="f field"><label>උප්පැන්න සහතික අංකය</label><input id="s_birthCertNo"></div>
             <div class="f field"><label>ජාතික හැඳුනුම්පත් අංකය</label><input id="s_nicNo"></div>
-            <div class="f field"><label>ශ්‍රේණිය (Grade No.)</label><input id="s_gradeNumber"></div>
-            <div class="f field"><label>පන්තිය (Class)</label><input id="s_className"></div>
+            <div class="f field"><label>ශ්‍රේණිය (Grade No.)</label><select id="s_gradeNumber"><option value="">-- තෝරන්න --</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option></select></div>
+            <div class="f field"><label>පන්තිය (Class)</label><select id="s_className" disabled><option value="">-- ශ්‍රේණිය තෝරන්න --</option></select></div>
             <div class="f field"><label>ස්ත්‍රී/පුරුෂ භාවය (Gender)</label>
               <select id="s_gender"><option value="">-- තෝරන්න --</option>
                 <option>ස්ත්‍රී</option><option>පුරුෂ</option></select></div>
@@ -599,7 +600,7 @@ wireCollection({
 
 // ---------- Students ----------
 const studentFieldIds = ['admissionNo','childNameSinhala','childNameEnglish','initialsNameSinhala',
-  'initialsNameEnglish','birthDate','age','birthCertNo','nicNo','gradeNumber','className','gender','ethnicity',
+  'initialsNameEnglish','birthDate','age','address','birthCertNo','nicNo','gradeNumber','className','gender','ethnicity',
   'religion','fatherAlive','motherAlive','fatherName','fatherOccupation','fatherPhone','motherName',
   'motherOccupation','motherPhone','declarantName','relationship','contactPhone','transport','parentsAbroad',
   'abroadMother','abroadFather','abroadCountry','passportNo','receivingMedicalTreatment','medicalReason','subject1','subject2','subject3',
@@ -608,7 +609,7 @@ const studentFieldIds = ['admissionNo','childNameSinhala','childNameEnglish','in
 const studentLabels = {
   admissionNo:'ඇතුළත් වීමේ අංකය (Admission No.)', childNameSinhala:'ශිෂ්‍ය නම - සිංහල',
   childNameEnglish:'ශිෂ්‍ය නම - English', initialsNameSinhala:'මුලකුරු සමග නම (සිංහල)',
-  initialsNameEnglish:'මුලකුරු සමග නම (English)', birthDate:'උපන් දිනය', age:'වයස (Age)', birthCertNo:'උප්පැන්න සහතික අංකය',
+  initialsNameEnglish:'මුලකුරු සමග නම (English)', birthDate:'උපන් දිනය', age:'වයස (Age)', address:'ලිපිනය (Address)', birthCertNo:'උප්පැන්න සහතික අංකය',
   nicNo:'ජාතික හැඳුනුම්පත් අංකය', gradeNumber:'ශ්‍රේණිය (Grade No.)', className:'පන්තිය (Class)',
   gender:'ස්ත්‍රී/පුරුෂ භාවය (Gender)', ethnicity:'ජාතිකත්වය (Ethnicity)', religion:'ආගම (Religion)',
   fatherAlive:'පියා ජීවත්ව සිටීද?', motherAlive:'මව ජීවත්ව සිටීද?',
@@ -650,6 +651,46 @@ wireCollection({
     return tr;
   }
 });
+
+// ---------- Grade -> Class dependent dropdown ----------
+(function(){
+  const gradeSel = document.getElementById('s_gradeNumber');
+  const classSel = document.getElementById('s_className');
+  const studentFormEl = document.getElementById('studentForm');
+  const nativeValue = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+
+  function classChoices(){
+    const g = parseInt(gradeSel.value, 10);
+    if(!g) return null;
+    return g <= 11 ? ['A','B'] : ['කලා අංශය'];
+  }
+
+  function buildClassOptions(){
+    const choices = classChoices();
+    classSel.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value = '';
+    ph.textContent = choices ? '-- තෝරන්න --' : '-- ශ්‍රේණිය තෝරන්න --';
+    classSel.appendChild(ph);
+    (choices || []).forEach(c=>{
+      const o = document.createElement('option');
+      o.value = c; o.textContent = c;
+      classSel.appendChild(o);
+    });
+    classSel.disabled = !choices;
+  }
+
+  // When the app fills the form while editing a record, rebuild the options for the
+  // current grade first so the saved class value can be selected.
+  Object.defineProperty(classSel, 'value', {
+    get(){ return nativeValue.get.call(this); },
+    set(v){ buildClassOptions(); nativeValue.set.call(this, v); }
+  });
+
+  gradeSel.addEventListener('change', buildClassOptions);
+  studentFormEl.addEventListener('reset', ()=> setTimeout(buildClassOptions, 0));
+  buildClassOptions();
+})();
 
 // ---------- Conditional father/mother field groups ----------
 (function(){
