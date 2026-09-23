@@ -624,7 +624,15 @@ loginForm.addEventListener("submit", async (e)=>{
     await signInWithEmailAndPassword(auth, email, pass);
     // onAuthStateChanged handles the rest (role check + view swap)
   }catch(err){
-    loginStatus.textContent = "පිවිසීම අසාර්ථකයි — විද්‍යුත් තැපෑල හෝ මුරපදය වැරදිය.";
+    const code = err.code || "";
+    loginStatus.textContent =
+      code === "auth/user-not-found" ? "මෙම විද්‍යුත් තැපෑල සමග ගිණුමක් නොමැත. පරිපාලකවරයාව සම්බන්ධ කරගන්න."
+      : code === "auth/wrong-password" ? "මුරපදය වැරදිය."
+      : code === "auth/invalid-credential" ? "විද්‍යුත් තැපෑල හෝ මුරපදය වැරදිය. හිස්තැන් නොමැතිව නැවත ටයිප් කර බලන්න."
+      : code === "auth/invalid-email" ? "විද්‍යුත් තැපෑල වැරදි ආකෘතියක ඇත."
+      : code === "auth/too-many-requests" ? "වැරදි උත්සාහයන් වැඩිය. ටිකක් පසුව උත්සාහ කරන්න."
+      : code === "auth/user-disabled" ? "මෙම ගිණුම අක්‍රිය කර ඇත. පරිපාලකවරයාව සම්බන්ධ කරගන්න."
+      : "පිවිසීම අසාර්ථකයි (" + (code || "unknown") + ").";
     loginStatus.classList.add("on");
     loginBtn.disabled = false;
     loginBtn.textContent = "පිවිසෙන්න";
