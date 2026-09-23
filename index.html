@@ -213,6 +213,7 @@ th{background:#f6eeee;color:var(--maroon-dark);position:sticky;top:0;}
             <div class="f field"><label>මුලකුරු සමග නම (සිංහල)</label><input id="s_initialsNameSinhala"></div>
             <div class="f field"><label>මුලකුරු සමග නම (English)</label><input id="s_initialsNameEnglish"></div>
             <div class="f field"><label>උපන් දිනය</label><input type="date" id="s_birthDate"></div>
+            <div class="f field"><label>වයස (Age)</label><input id="s_age" readonly style="background:#f3f1f1;"></div>
             <div class="f field"><label>උප්පැන්න සහතික අංකය</label><input id="s_birthCertNo"></div>
             <div class="f field"><label>ජාතික හැඳුනුම්පත් අංකය</label><input id="s_nicNo"></div>
             <div class="f field"><label>ශ්‍රේණිය (Grade No.)</label><input id="s_gradeNumber"></div>
@@ -265,7 +266,7 @@ th{background:#f6eeee;color:var(--maroon-dark);position:sticky;top:0;}
             <div class="f field"><label>දරුවා වෛද්‍ය ප්‍රතිකාර ලබන්නේද?</label>
               <select id="s_receivingMedicalTreatment"><option value="">-- තෝරන්න --</option>
                 <option>නැත</option><option>ඔව්</option></select></div>
-            <div class="f field span2"><label>වෛද්‍ය කරුණු / විශේෂ තොරතුරු (එසේ නම් හේතුව)</label><textarea id="s_medicalReason" rows="2"></textarea></div>
+            <div class="f field span2" id="s_medicalReasonWrap"><label>වෛද්‍ය කරුණු / විශේෂ තොරතුරු (එසේ නම් හේතුව)</label><textarea id="s_medicalReason" rows="2" disabled placeholder="ඔව් තෝරූ පසු මෙය සක්‍රීය වේ"></textarea></div>
             <div class="f field"><label>පළමු විෂය කාණ්ඩය</label><input id="s_subject1"></div>
             <div class="f field"><label>දෙවන විෂය කාණ්ඩය</label><input id="s_subject2"></div>
             <div class="f field"><label>තෙවන විෂය කාණ්ඩය</label><input id="s_subject3"></div>
@@ -597,7 +598,7 @@ wireCollection({
 
 // ---------- Students ----------
 const studentFieldIds = ['admissionNo','childNameSinhala','childNameEnglish','initialsNameSinhala',
-  'initialsNameEnglish','birthDate','birthCertNo','nicNo','gradeNumber','className','gender','ethnicity',
+  'initialsNameEnglish','birthDate','age','birthCertNo','nicNo','gradeNumber','className','gender','ethnicity',
   'religion','fatherAlive','motherAlive','fatherName','fatherOccupation','fatherPhone','motherName',
   'motherOccupation','motherPhone','declarantName','relationship','contactPhone','transport','parentsAbroad',
   'abroadMother','abroadFather','abroadCountry','passportNo','receivingMedicalTreatment','medicalReason','subject1','subject2','subject3',
@@ -606,7 +607,7 @@ const studentFieldIds = ['admissionNo','childNameSinhala','childNameEnglish','in
 const studentLabels = {
   admissionNo:'ඇතුළත් වීමේ අංකය (Admission No.)', childNameSinhala:'ශිෂ්‍ය නම - සිංහල',
   childNameEnglish:'ශිෂ්‍ය නම - English', initialsNameSinhala:'මුලකුරු සමග නම (සිංහල)',
-  initialsNameEnglish:'මුලකුරු සමග නම (English)', birthDate:'උපන් දිනය', birthCertNo:'උප්පැන්න සහතික අංකය',
+  initialsNameEnglish:'මුලකුරු සමග නම (English)', birthDate:'උපන් දිනය', age:'වයස (Age)', birthCertNo:'උප්පැන්න සහතික අංකය',
   nicNo:'ජාතික හැඳුනුම්පත් අංකය', gradeNumber:'ශ්‍රේණිය (Grade No.)', className:'පන්තිය (Class)',
   gender:'ස්ත්‍රී/පුරුෂ භාවය (Gender)', ethnicity:'ජාතිකත්වය (Ethnicity)', religion:'ආගම (Religion)',
   fatherAlive:'පියා ජීවත්ව සිටීද?', motherAlive:'මව ජීවත්ව සිටීද?',
@@ -706,6 +707,60 @@ wireCollection({
   });
 
   toggleAbroadGroup(false); // initial state on page load
+})();
+
+// ---------- Auto-calculate age from birth date ----------
+(function(){
+  const birthDateEl = document.getElementById('s_birthDate');
+  const ageEl = document.getElementById('s_age');
+  const studentFormEl = document.getElementById('studentForm');
+  const studentTbody = document.getElementById('s_tbody');
+
+  function calcAge(){
+    if(!birthDateEl.value){ ageEl.value = ''; return; }
+    const bd = new Date(birthDateEl.value);
+    if(isNaN(bd.getTime())){ ageEl.value = ''; return; }
+    const today = new Date();
+    let years = today.getFullYear() - bd.getFullYear();
+    let months = today.getMonth() - bd.getMonth();
+    if(today.getDate() < bd.getDate()){ months--; }
+    if(months < 0){ years--; months += 12; }
+    if(years < 0){ ageEl.value = ''; return; }
+    ageEl.value = months > 0 ? `${years} අවු. ${months} මාස` : `${years} අවු.`;
+  }
+
+  birthDateEl.addEventListener('change', calcAge);
+  birthDateEl.addEventListener('input', calcAge);
+  studentFormEl.addEventListener('reset', ()=> setTimeout(calcAge, 0));
+  studentTbody.addEventListener('click', (e)=>{
+    if(e.target.getAttribute('data-edit')) setTimeout(calcAge, 0);
+  });
+
+  calcAge(); // initial state on page load
+})();
+
+// ---------- Enable "medical reason" only when medical treatment = yes ----------
+(function(){
+  const medSel = document.getElementById('s_receivingMedicalTreatment');
+  const reasonEl = document.getElementById('s_medicalReason');
+  const reasonWrap = document.getElementById('s_medicalReasonWrap');
+  const studentFormEl = document.getElementById('studentForm');
+  const studentTbody = document.getElementById('s_tbody');
+
+  function toggleMedicalReason(clearHidden){
+    const show = medSel.value === 'ඔව්';
+    reasonEl.disabled = !show;
+    reasonWrap.style.opacity = show ? '1' : '.55';
+    if(!show && clearHidden){ reasonEl.value = ''; }
+  }
+
+  medSel.addEventListener('change', ()=> toggleMedicalReason(true));
+  studentFormEl.addEventListener('reset', ()=> setTimeout(()=> toggleMedicalReason(false), 0));
+  studentTbody.addEventListener('click', (e)=>{
+    if(e.target.getAttribute('data-edit')) setTimeout(()=> toggleMedicalReason(false), 0);
+  });
+
+  toggleMedicalReason(false); // initial state on page load
 })();
 </script>
 </body>
