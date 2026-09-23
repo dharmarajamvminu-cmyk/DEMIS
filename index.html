@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dharmaraja College - Management Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --brand: #7A0F2E;
+      --brand-dark: #560A20;
+      --saffron: #C9911A;
+      --bg: #F4ECE9;
+      --card: #FFFFFF;
+      --text: #241417;
+      --muted: #6B5B5E;
+      --border: #EBE0DE;
+      --danger: #B03A2E;
+      --success: #1A7A60;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Noto Sans Sinhala', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* Auth Views */
+    .auth-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(175deg, var(--brand-dark) 0%, var(--brand) 100%);
+      padding: 16px;
+    }
+    .auth-card {
+      background: var(--card);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 400px;
+      padding: 32px 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    .auth-card h2 { margin-top: 0; color: var(--brand); }
+    .field { margin-bottom: 16px; text-align: left; }
+    .field label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 4px; }
+    .field input, .field select, .field textarea {
+      width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem;
+    }
+
+    /* App Dashboard Shell */
+    #appShell { display: none; min-height: 100vh; flex-direction: column; }
+    header {
+      background: var(--brand-dark);
+      color: #fff;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header .title { font-size: 1.2rem; font-weight: bold; }
+    
+    .nav-tabs {
+      display: flex;
+      background: #fff;
+      border-bottom: 2px solid var(--border);
+      overflow-x: auto;
+    }
+    .tab-btn {
+      padding: 14px 20px;
+      border: none;
+      background: none;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+      border-bottom: 3px solid transparent;
+    }
+    .tab-btn.active {
+      color: var(--brand);
+      border-bottom-color: var(--brand);
+    }
+
+    .main-content { max-width: 1100px; margin: 0 auto; width: 100%; padding: 20px 16px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Component UI */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+    .span2 { grid-column: 1 / -1; }
+    .btn-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+    
+    button {
+      cursor: pointer; border: none; border-radius: 6px; padding: 10px 16px; font-size: 0.9rem; font-weight: 600;
+    }
+    .btn-primary { background: var(--brand); color: #fff; }
+    .btn-primary:hover { background: var(--brand-dark); }
+    .btn-secondary { background: #e0e5eb; color: var(--text); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-small { padding: 6px 10px; font-size: 0.8rem; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 10px; }
+    th, td { border: 1px solid var(--border); padding: 10px; text-align: left; }
+    th { background: #f8f1f0; color: var(--brand-dark); }
+    .table-scroll { overflow-x: auto; }
+  </style>
+</head>
+<body>
+
+  <!-- AUTHENTICATION VIEW -->
+  <div class="auth-container" id="authView">
+    <div class="auth-card">
+      <h2>School Portal Login</h2>
+      <p style="color: var(--muted); font-size: 0.9rem;">Dharmaraja College, Veyangoda</p>
+      
+      <form id="loginForm">
+        <div class="field">
+          <label>Email Address</label>
+          <input type="email" id="loginEmail" placeholder="admin@school.lk" required />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="loginPassword" required />
+        </div>
+        <button type="submit" class="btn-primary" style="width: 100%;">Login to Dashboard</button>
+      </form>
+      <div id="authError" style="color: var(--danger); margin-top: 10px; font-size: 0.85rem;"></div>
+    </div>
+  </div>
+
+  <!-- MAIN DASHBOARD APP -->
+  <div id="appShell">
+    <header>
+      <div class="title">ධර්මරාජ විද්‍යාලය — Management Dashboard</div>
+      <div>
+        <span id="userDisplay" style="font-size: 0.85rem; margin-right: 10px;"></span>
+        <button class="btn-secondary btn-small" id="logoutBtn">Logout</button>
+      </div>
+    </header>
+
+    <!-- NAVIGATION TABS -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" data-tab="students">Students Database</button>
+      <button class="tab-btn" data-tab="teachers">Teachers Database</button>
+      <button class="tab-btn" data-tab="nonacademic">Non-Academic Database</button>
+      <button class="tab-btn" data-tab="marksheet">Mark Sheet</button>
+    </nav>
+
+    <main class="main-content">
+
+      <!-- 1. STUDENT DATABASE -->
+      <section class="tab-panel active" id="students">
+        <div class="card">
+          <h2>Student Registration (ශිෂ්‍ය දත්ත)</h2>
+          <form id="studentForm">
+            <input type="hidden" id="studentId">
+            <div class="grid">
+              <div class="field">
+                <label>Admission No *</label>
+                <input type="text" id="stdIndex" required>
+              </div>
+              <div class="field">
+                <label>Full Name *</label>
+                <input type="text" id="stdName" required>
+              </div>
+              <div class="field">
+                <label>Grade / Class *</label>
+                <input type="text" id="stdClass" placeholder="e.g. 10-A" required>
+              </div>
+              <div class="field">
+                <label>Guardian Name</label>
+                <input type="text" id="stdGuardian">
+              </div>
+              <div class="field">
+                <label>Contact Number</label>
+                <input type="tel" id="stdPhone">
+              </div>
+            </div>
+            <div class="btn-row">
+              <button type="submit" class="btn-primary">Save Student</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Student Records</h2>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Index</th>
+                  <th>Name</th>
+                  <th>Class</th>
+                  <th>Guardian</th>
+                  <th>Contact</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="studentTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. TEACHERS DATABASE -->
+      <section class="tab-panel" id="teachers">
+        <div class="card">
+          <h2 id="teacherFormTitle">Add New Teacher (ගුරු දත්ත)</h2>
+          <form id="teacherForm">
+            <input type="hidden" id="teacherRecordId">
+            <div class="grid">
+              <div class="field">
+                <label>NIC No *</label>
+                <input type="text" id="t_nic" required>
+              </div>
+              <div class="field">
+                <label>Full Name *</label>
+                <input type="text" id="t_fullName" required>
+              </div>
+              <div class="field">
+                <label>Position</label>
+                <select id="t_position">
+                  <option value="">-- Select --</option>
+                  <option value="Teacher">Teacher (ගුරු)</option>
+                  <option value="Head Teacher">Head Teacher (ප්‍රධාන ගුරු)</option>
+                  <option value="Deputy">Deputy Principal (උප ගුරු)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Phone No.</label>
+                <input type="tel" id="t_phone">
+              </div>
+              <div class="field">
+                <label>Bank</label>
+                <input type="text" id="t_bank">
+              </div>
+            </div>
+            <div class="btn-row">
+              <button type="submit" class="btn-primary">Save Teacher</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Teacher Records</h2>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>NIC</th>
+                  <th>Name</th>
+                  <th>Position</th>
+                  <th>Phone</th>
+                  <th>Bank</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="teacherTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. NON-ACADEMIC DATABASE -->
+      <section class="tab-panel" id="nonacademic">
+        <div class="card">
+          <h2>Non-Academic Staff Entry (අධ්‍යයන නොවන කාර්ය මණ්ඩලය)</h2>
+          <form id="nonAcademicForm">
+            <input type="hidden" id="naRecordId">
+            <div class="grid">
+              <div class="field">
+                <label>Employee ID / NIC *</label>
+                <input type="text" id="naNic" required>
+              </div>
+              <div class="field">
+                <label>Full Name *</label>
+                <input type="text" id="naName" required>
+              </div>
+              <div class="field">
+                <label>Role / Designation</label>
+                <input type="text" id="naRole" placeholder="e.g. Clerk, Lab Assistant, Security">
+              </div>
+              <div class="field">
+                <label>Contact Number</label>
+                <input type="tel" id="naPhone">
+              </div>
+            </div>
+            <div class="btn-row">
+              <button type="submit" class="btn-primary">Save Staff Member</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Staff Records</h2>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID/NIC</th>
+                  <th>Name</th>
+                  <th>Role</th>
+                  <th>Phone</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="naTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. MARK SHEET MODULE -->
+      <section class="tab-panel" id="marksheet">
+        <div class="card">
+          <h2>Student Mark Sheet Entry (ලකුණු ලේඛනය)</h2>
+          <form id="marksheetForm">
+            <div class="grid">
+              <div class="field">
+                <label>Admission / Index No *</label>
+                <input type="text" id="mIndex" required>
+              </div>
+              <div class="field">
+                <label>Term / Exam</label>
+                <select id="mTerm">
+                  <option value="Term 1">Term 1</option>
+                  <option value="Term 2">Term 2</option>
+                  <option value="Term 3">Term 3</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Mathematics</label>
+                <input type="number" id="mMaths" min="0" max="100">
+              </div>
+              <div class="field">
+                <label>Science</label>
+                <input type="number" id="mScience" min="0" max="100">
+              </div>
+              <div class="field">
+                <label>English</label>
+                <input type="number" id="mEnglish" min="0" max="100">
+              </div>
+              <div class="field">
+                <label>Sinhala</label>
+                <input type="number" id="mSinhala" min="0" max="100">
+              </div>
+            </div>
+            <div class="btn-row">
+              <button type="submit" class="btn-primary">Calculate & Save Marks</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Marks Summary</h2>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Index</th>
+                  <th>Term</th>
+                  <th>Maths</th>
+                  <th>Science</th>
+                  <th>English</th>
+                  <th>Sinhala</th>
+                  <th>Total</th>
+                  <th>Average</th>
+                </tr>
+              </thead>
+              <tbody id="marksTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- FIREBASE MODULE & INTEGRATION SCRIPT -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+    import { 
+      getAuth, 
+      signInWithEmailAndPassword, 
+      onAuthStateChanged, 
+      signOut 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    // Provided Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBPPaWvOSTWeflv9ucnBoyQbZARDw6pSJU",
+      authDomain: "demis-9e3c8.firebaseapp.com",
+      projectId: "demis-9e3c8",
+      storageBucket: "demis-9e3c8.firebasestorage.app",
+      messagingSenderId: "727272188704",
+      appId: "1:727272188704:web:4f3894c1bb52e8b2a20545",
+      measurementId: "G-S7N1CVLEPP"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const auth = getAuth(app);
+
+    // DOM Elements
+    const authView = document.getElementById('authView');
+    const appShell = document.getElementById('appShell');
+    const loginForm = document.getElementById('loginForm');
+    const authError = document.getElementById('authError');
+    const userDisplay = document.getElementById('userDisplay');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // Authentication State Management
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        authView.style.display = 'none';
+        appShell.style.display = 'flex';
+        userDisplay.textContent = user.email;
+        loadAllData();
+      } else {
+        authView.style.display = 'flex';
+        appShell.style.display = 'none';
+      }
+    });
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      authError.textContent = '';
+      const email = document.getElementById('loginEmail').value;
+      const pass = document.getElementById('loginPassword').value;
+
+      try {
+        await signInWithEmailAndPassword(auth, email, pass);
+      } catch (err) {
+        authError.textContent = "Login failed: " + err.message;
+      }
+    });
+
+    logoutBtn.addEventListener('click', () => signOut(auth));
+
+    // Dashboard Navigation Logic
+    const tabs = document.querySelectorAll('.tab-btn');
+    const panels = document.querySelectorAll('.tab-panel');
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        panels.forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // --- DATA STORE (Local Storage Persistence Fallback) ---
+    const getStore = (key) => JSON.parse(localStorage.getItem(key) || '[]');
+    const setStore = (key, val) => localStorage.setItem(key, JSON.stringify(val));
+
+    function loadAllData() {
+      renderStudents();
+      renderTeachers();
+      renderNonAcademic();
+      renderMarks();
+    }
+
+    // 1. Student Database Operations
+    const studentForm = document.getElementById('studentForm');
+    studentForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const list = getStore('std_db');
+      list.push({
+        id: Date.now(),
+        index: document.getElementById('stdIndex').value,
+        name: document.getElementById('stdName').value,
+        class: document.getElementById('stdClass').value,
+        guardian: document.getElementById('stdGuardian').value,
+        phone: document.getElementById('stdPhone').value
+      });
+      setStore('std_db', list);
+      studentForm.reset();
+      renderStudents();
+    });
+
+    function renderStudents() {
+      const list = getStore('std_db');
+      const body = document.getElementById('studentTableBody');
+      body.innerHTML = list.map(s => `
+        <tr>
+          <td>${s.index}</td>
+          <td>${s.name}</td>
+          <td>${s.class}</td>
+          <td>${s.guardian || '-'}</td>
+          <td>${s.phone || '-'}</td>
+          <td><button class="btn-danger btn-small" onclick="deleteItem('std_db', ${s.id})">Delete</button></td>
+        </tr>
+      `).join('');
+    }
+
+    // 2. Teacher Database Operations
+    const teacherForm = document.getElementById('teacherForm');
+    teacherForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const list = getStore('teacherDatabaseRecords');
+      list.push({
+        id: Date.now(),
+        nic: document.getElementById('t_nic').value,
+        fullName: document.getElementById('t_fullName').value,
+        position: document.getElementById('t_position').value,
+        phone: document.getElementById('t_phone').value,
+        bank: document.getElementById('t_bank').value
+      });
+      setStore('teacherDatabaseRecords', list);
+      teacherForm.reset();
+      renderTeachers();
+    });
+
+    function renderTeachers() {
+      const list = getStore('teacherDatabaseRecords');
+      const body = document.getElementById('teacherTableBody');
+      body.innerHTML = list.map(t => `
+        <tr>
+          <td>${t.nic}</td>
+          <td>${t.fullName}</td>
+          <td>${t.position || '-'}</td>
+          <td>${t.phone || '-'}</td>
+          <td>${t.bank || '-'}</td>
+          <td><button class="btn-danger btn-small" onclick="deleteItem('teacherDatabaseRecords', ${t.id})">Delete</button></td>
+        </tr>
+      `).join('');
+    }
+
+    // 3. Non-Academic Database Operations
+    const naForm = document.getElementById('nonAcademicForm');
+    naForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const list = getStore('na_db');
+      list.push({
+        id: Date.now(),
+        nic: document.getElementById('naNic').value,
+        name: document.getElementById('naName').value,
+        role: document.getElementById('naRole').value,
+        phone: document.getElementById('naPhone').value
+      });
+      setStore('na_db', list);
+      naForm.reset();
+      renderNonAcademic();
+    });
+
+    function renderNonAcademic() {
+      const list = getStore('na_db');
+      const body = document.getElementById('naTableBody');
+      body.innerHTML = list.map(n => `
+        <tr>
+          <td>${n.nic}</td>
+          <td>${n.name}</td>
+          <td>${n.role || '-'}</td>
+          <td>${n.phone || '-'}</td>
+          <td><button class="btn-danger btn-small" onclick="deleteItem('na_db', ${n.id})">Delete</button></td>
+        </tr>
+      `).join('');
+    }
+
+    // 4. Mark Sheet Operations
+    const marksForm = document.getElementById('marksheetForm');
+    marksForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const m1 = Number(document.getElementById('mMaths').value || 0);
+      const m2 = Number(document.getElementById('mScience').value || 0);
+      const m3 = Number(document.getElementById('mEnglish').value || 0);
+      const m4 = Number(document.getElementById('mSinhala').value || 0);
+      const total = m1 + m2 + m3 + m4;
+      const avg = (total / 4).toFixed(1);
+
+      const list = getStore('marks_db');
+      list.push({
+        id: Date.now(),
+        index: document.getElementById('mIndex').value,
+        term: document.getElementById('mTerm').value,
+        m1, m2, m3, m4, total, avg
+      });
+      setStore('marks_db', list);
+      marksForm.reset();
+      renderMarks();
+    });
+
+    function renderMarks() {
+      const list = getStore('marks_db');
+      const body = document.getElementById('marksTableBody');
+      body.innerHTML = list.map(m => `
+        <tr>
+          <td>${m.index}</td>
+          <td>${m.term}</td>
+          <td>${m.m1}</td>
+          <td>${m.m2}</td>
+          <td>${m.m3}</td>
+          <td>${m.m4}</td>
+          <td><strong>${m.total}</strong></td>
+          <td><strong>${m.avg}%</strong></td>
+        </tr>
+      `).join('');
+    }
+
+    // Global helper to delete records
+    window.deleteItem = function(storeKey, id) {
+      if (confirm('Are you sure you want to delete this record?')) {
+        let list = getStore(storeKey);
+        list = list.filter(item => item.id !== id);
+        setStore(storeKey, list);
+        loadAllData();
+      }
+    };
+  </script>
+</body>
+</html>
