@@ -825,12 +825,13 @@ import { getStorage, ref as storageRef, uploadBytes, getDownloadURL }
    Firebase Console → Project Settings → General → Your apps → Web app
    ========================================================================== */
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBPPaWvOSTWeflv9ucnBoyQbZARDw6pSJU",
+  authDomain: "demis-9e3c8.firebaseapp.com",
+  projectId: "demis-9e3c8",
+  storageBucket: "demis-9e3c8.firebasestorage.app",
+  messagingSenderId: "727272188704",
+  appId: "1:727272188704:web:4f3894c1bb52e8b2a20545",
+  measurementId: "G-S7N1CVLEPP"
 };
 
 const fbApp   = initializeApp(firebaseConfig);
@@ -1161,26 +1162,5 @@ updateClassOptions(gradeNumberEl.value, restoredDraft && restoredDraft.className
 syncAll();
 show(0);
 </script>
-  // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyBPPaWvOSTWeflv9ucnBoyQbZARDw6pSJU",
-  authDomain: "demis-9e3c8.firebaseapp.com",
-  projectId: "demis-9e3c8",
-  storageBucket: "demis-9e3c8.firebasestorage.app",
-  messagingSenderId: "727272188704",
-  appId: "1:727272188704:web:4f3894c1bb52e8b2a20545",
-  measurementId: "G-S7N1CVLEPP"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 </body>
 </html>
