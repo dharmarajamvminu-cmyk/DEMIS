@@ -2,17 +2,34 @@
 <html lang="si">
 <head>
 <meta charset="UTF-8" />
-<title>ගුරු දත්ත ගබඩාව / Teacher Database</title>
-<script type="module">
-  import { auth } from "./js/firebase-config.js";
-  import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-
-  onAuthStateChanged(auth, (user) => {
-    window.location.replace(user ? "dashboard.html" : "login.html");
-  });
-</script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>පාසල් දත්ත කළමනාකරණ පද්ධතිය / School Database System</title>
+<link rel="stylesheet" href="css/style.css" />
 </head>
-<body>
-  <p style="font-family:sans-serif;text-align:center;margin-top:40px;">යොමු කරමින් පවතී...</p>
+<body class="login-body">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-logo">🏫</div>
+      <h1 class="login-title">පාසල් දත්ත කළමනාකරණ පද්ධතිය</h1>
+      <p class="login-subtitle">School Database System</p>
+
+      <form id="loginForm" class="login-form">
+        <div class="form-group">
+          <label for="email">විද්‍යුත් තැපෑල / Email</label>
+          <input type="email" id="email" required autocomplete="username" />
+        </div>
+        <div class="form-group">
+          <label for="password">මුරපදය / Password</label>
+          <input type="password" id="password" required autocomplete="current-password" />
+        </div>
+
+        <div id="loginError" class="form-msg error" style="display:none;"></div>
+
+        <button type="submit" id="loginBtn" class="btn btn-primary btn-block">පිවිසෙන්න</button>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="js/auth.js"></script>
 </body>
 </html>

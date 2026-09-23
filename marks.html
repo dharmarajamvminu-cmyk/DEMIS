@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ලකුණු පත්‍රය / Mark Sheet</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <header class="app-header no-print">
+    <div class="header-inner">
+      <div class="header-title">
+        <span class="header-logo">📝</span>
+        <div>
+          <h1>ලකුණු පත්‍රය</h1>
+          <p>Mark Sheet</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <a href="hub.html" class="btn btn-outline btn-sm">← මුල් පිටුව</a>
+        <span id="adminEmail" class="admin-email"></span>
+        <button id="logoutBtn" class="btn btn-outline">ඉවත් වන්න</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="dashboardContent" class="container" style="display:none;">
+
+    <!-- STATS -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-value" id="statTotal">0</span>
+        <span class="stat-label">මුළු ලකුණු පත්‍ර</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value" id="statTerms">0</span>
+        <span class="stat-label">විභාග වාර ගණන</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value" id="statAvg">0</span>
+        <span class="stat-label">සමස්ත සාමාන්‍යය</span>
+      </div>
+    </section>
+
+    <!-- ADD / EDIT FORM -->
+    <section class="card no-print">
+      <h2 id="formTitle" class="card-title">නව ලකුණු පත්‍රයක් එක් කරන්න</h2>
+      <div id="formMsg" class="form-msg" style="display:none;"></div>
+
+      <form id="marksForm" class="teacher-form">
+
+        <h3 class="section-title">සිසුවා සහ වාරය</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="studentSelect">සිසුවා තෝරන්න *</label>
+            <select id="studentSelect" required>
+              <option value="">-- සිසුවෙකු තෝරන්න --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="term">විභාග වාරය *</label>
+            <input type="text" id="term" placeholder="උදා: 2026 - පළමු වාර විභාගය" required />
+          </div>
+        </div>
+
+        <h3 class="section-title">විෂය ලකුණු</h3>
+        <div class="subjects-list-header">
+          <span>විෂය</span><span>ලකුණු</span><span></span>
+        </div>
+        <div id="subjectsContainer"></div>
+
+        <div class="add-subject-row">
+          <select id="newSubjectSelect">
+            <option value="">-- විෂයක් තෝරන්න --</option>
+            <option value="සිංහල භාෂාව">සිංහල භාෂාව</option>
+            <option value="ඉංග්‍රීසි භාෂාව">ඉංග්‍රීසි භාෂාව</option>
+            <option value="ගණිතය">ගණිතය</option>
+            <option value="විද්‍යාව">විද්‍යාව</option>
+            <option value="ඉතිහාසය">ඉතිහාසය</option>
+            <option value="ආගම් අධ්‍යාපනය">ආගම් අධ්‍යාපනය</option>
+            <option value="තොරතුරු තාක්ෂණය">තොරතුරු තාක්ෂණය</option>
+            <option value="සෞඛ්‍ය හා ශාරීරික අධ්‍යාපනය">සෞඛ්‍ය හා ශාරීරික අධ්‍යාපනය</option>
+            <option value="කලාව">කලාව</option>
+            <option value="දෙවන භාෂාව">දෙවන භාෂාව</option>
+            <option value="__custom__">වෙනත් විෂයක්...</option>
+          </select>
+          <input type="text" id="customSubjectInput" placeholder="විෂයේ නම" style="display:none;" />
+          <button type="button" id="addSubjectBtn" class="btn btn-outline btn-sm">+ විෂයක් එක් කරන්න</button>
+        </div>
+
+        <h3 class="section-title">වෙනත්</h3>
+        <div class="form-grid">
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label for="remarks">ගුරු/පන්ති භාරකරු අදහස්</label>
+            <textarea id="remarks" rows="2"></textarea>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" id="saveBtn" class="btn btn-primary">සුරකින්න</button>
+          <button type="button" id="cancelEditBtn" class="btn btn-outline" style="display:none;">අවලංගු කරන්න</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- MARK SHEET LIST -->
+    <section class="card" id="marksListSection">
+      <div class="list-header no-print">
+        <h2 class="card-title">ලකුණු පත්‍ර ලේඛනය</h2>
+        <div class="list-header-actions">
+          <input type="text" id="searchInput" placeholder="නම, ඇතුළත් වීමේ අංකය හෝ වාරයෙන් සොයන්න..." class="search-input" />
+          <button id="printListBtn" class="btn btn-outline">ලේඛනය මුද්‍රණය කරන්න</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="teacher-table">
+          <thead>
+            <tr>
+              <th>Admission No</th>
+              <th>සිසුවා</th>
+              <th>ශ්‍රේණිය</th>
+              <th>වාරය</th>
+              <th>මුළු ලකුණු</th>
+              <th>සාමාන්‍යය</th>
+              <th class="no-print">ක්‍රියා</th>
+            </tr>
+          </thead>
+          <tbody id="marksTableBody">
+            <tr id="loadingRow"><td colspan="7" class="center-cell">දත්ත ලබාගනිමින් පවතී...</td></tr>
+            <tr id="emptyRow" style="display:none;"><td colspan="7" class="center-cell">ලකුණු පත්‍ර සොයාගත නොහැක.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- VIEW / PRINT REPORT CARD MODAL -->
+  <div id="viewModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header no-print">
+        <button id="printTeacherBtn" class="btn btn-outline btn-sm">ලකුණු පත්‍රය මුද්‍රණය කරන්න</button>
+        <button id="closeViewModal" class="btn-close">✕</button>
+      </div>
+      <div id="viewModalBody" class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- DELETE CONFIRM MODAL -->
+  <div id="deleteModal" class="modal-overlay no-print">
+    <div class="modal-box modal-small">
+      <p class="delete-msg">මෙම ලකුණු පත්‍රය මකා දැමීමට ඔබට අවශ්‍යද?</p>
+      <div class="modal-actions">
+        <button id="confirmDeleteBtn" class="btn btn-danger">මකන්න</button>
+        <button id="cancelDeleteBtn" class="btn btn-outline">අවලංගු කරන්න</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/marks.js"></script>
+  <script type="module" src="js/marks-page.js"></script>
+</body>
+</html>
