@@ -191,23 +191,26 @@ const FIELDS = [
   {n:'nicNo', l:'ජාතික හැඳුනුම්පත් අංකය'},
   {n:'gender', l:'ස්ත්‍රී/පුරුෂ', t:'select', o:['ස්ත්‍රී','පුරුෂ'], req:1},
   {n:'birthDate', l:'උපන් දිනය', t:'date', req:1},
-  {n:'religion', l:'ආගම', t:'select', o:['බෞද්ධ','හින්දු','ඉස්ලාම්','ක්‍රිස්තියානි','වෙනත්']},
-  {n:'ethnicity', l:'ජාතිය', t:'select', o:['සිංහල','දෙමළ','මුස්ලිම්','බර්ගර්','මැලේ','වෙනත්']},
+  {n:'religion', l:'ආගම', t:'select', o:['බෞද්ධ','හින්දු','ඉස්ලාම්','ක්‍රිස්තියානි','වෙනත්'], trig:{grp:'religionOther', val:'වෙනත්'}},
+  {n:'religionOther', l:'ආගමේ නම ලියන්න', grp:'religionOther'},
+  {n:'ethnicity', l:'ජාතිය', t:'select', o:['සිංහල','දෙමළ','මුස්ලිම්','බර්ගර්','මැලේ','වෙනත්'], trig:{grp:'ethnicityOther', val:'වෙනත්'}},
+  {n:'ethnicityOther', l:'ජාතියේ නම ලියන්න', grp:'ethnicityOther'},
   {n:'contactPhone', l:'දුරකථන අංකය', req:1},
-  {n:'fatherAlive', l:'පියා ජීවත්ව සිටීද?', t:'select', o:['ඔව්','නැත']},
+  {n:'fatherAlive', l:'පියා ජීවත්ව සිටීද?', t:'select', o:['ඔව්','නැත'], trig:{grp:'father', val:'ඔව්'}},
   {n:'fatherName', l:'පියාගේ නම', grp:'father'},
   {n:'fatherPhone', l:'පියාගේ දුරකථනය', grp:'father'},
   {n:'fatherOccupation', l:'පියාගේ රැකියාව', grp:'father'},
-  {n:'motherAlive', l:'මව ජීවත්ව සිටීද?', t:'select', o:['ඔව්','නැත']},
+  {n:'motherAlive', l:'මව ජීවත්ව සිටීද?', t:'select', o:['ඔව්','නැත'], trig:{grp:'mother', val:'ඔව්'}},
   {n:'motherName', l:'මවගේ නම', grp:'mother'},
   {n:'motherPhone', l:'මවගේ දුරකථනය', grp:'mother'},
   {n:'motherOccupation', l:'මවගේ රැකියාව', grp:'mother'},
-  {n:'modeOfTransport', l:'පාසලට එන ආකාරය'},
-  {n:'parentAbroad', l:'දෙමව්පියෙක් විදේශගතද', t:'select', o:['ඔව්','නැත']},
-  {n:'abroadCountry', l:'රට'},
-  {n:'passportNo', l:'ගමන් බලපත්‍ර අංකය'},
-  {n:'medicalTreatment', l:'දිගුකාලීන වෛද්‍ය ප්‍රතිකාර', t:'select', o:['ඔව්','නැත']},
-  {n:'medicalReason', l:'හේතුව'},
+  {n:'modeOfTransport', l:'පාසලට එන ආකාරය', t:'select', o:['පයින්','පාසල් වෑන් රථය','බස් රථය','ත්‍රීරෝද රථය','යතුරුපැදිය','පෞද්ගලික වාහනය','වෙනත්'], trig:{grp:'transportOther', val:'වෙනත්'}},
+  {n:'transportOther', l:'ආකාරය ලියන්න', grp:'transportOther'},
+  {n:'parentAbroad', l:'දෙමව්පියෙක් විදේශගතද', t:'select', o:['ඔව්','නැත'], trig:{grp:'abroad', val:'ඔව්'}},
+  {n:'abroadCountry', l:'රට', grp:'abroad'},
+  {n:'passportNo', l:'ගමන් බලපත්‍ර අංකය', grp:'abroad'},
+  {n:'medicalTreatment', l:'දිගුකාලීන වෛද්‍ය ප්‍රතිකාර', t:'select', o:['ඔව්','නැත'], trig:{grp:'medical', val:'ඔව්'}},
+  {n:'medicalReason', l:'හේතුව', grp:'medical'},
   {n:'subject1', l:'විෂය 1'},
   {n:'subject2', l:'විෂය 2'},
   {n:'subject3', l:'විෂය 3'},
@@ -217,7 +220,7 @@ const FIELDS = [
 ];
 
 const fieldsBox = document.getElementById('studentFields');
-const groupBoxes = {}; // grp name -> container element (created lazily, inserted right after its trigger select)
+const groupBoxes = {}; // grp name -> container element
 FIELDS.forEach(f=>{
   const wrap = document.createElement('div');
   let inner = `<label for="f_${f.n}">${f.l}</label>`;
@@ -241,13 +244,15 @@ FIELDS.forEach(f=>{
     groupBoxes[f.grp].appendChild(wrap);
   } else {
     fieldsBox.appendChild(wrap);
-    if(f.n === 'fatherAlive' || f.n === 'motherAlive'){
-      const grp = f.n === 'fatherAlive' ? 'father' : 'mother';
-      document.getElementById('f_'+f.n).addEventListener('change', (e)=>{
-        const box = document.getElementById('group_'+grp);
-        if(box) box.classList.toggle('hidden', e.target.value !== 'ඔව්');
-      });
-    }
+  }
+});
+// wire up trigger fields after all fields (and their group boxes) exist
+FIELDS.forEach(f=>{
+  if(f.trig){
+    document.getElementById('f_'+f.n).addEventListener('change', (e)=>{
+      const box = document.getElementById('group_'+f.trig.grp);
+      if(box) box.classList.toggle('hidden', e.target.value !== f.trig.val);
+    });
   }
 });
 
@@ -373,8 +378,12 @@ window.editStudent = function(id){
   const s = studentsCache.find(x=>x.id===id);
   if(!s) return;
   FIELDS.forEach(f => document.getElementById('f_'+f.n).value = s[f.n] || '');
-  document.getElementById('group_father').classList.toggle('hidden', s.fatherAlive !== 'ඔව්');
-  document.getElementById('group_mother').classList.toggle('hidden', s.motherAlive !== 'ඔව්');
+  FIELDS.forEach(f=>{
+    if(f.trig){
+      const box = document.getElementById('group_'+f.trig.grp);
+      if(box) box.classList.toggle('hidden', s[f.n] !== f.trig.val);
+    }
+  });
   document.getElementById('studentEditId').value = id;
   document.getElementById('studentFormTitle').textContent = 'ශිෂ්‍ය #' + s.index + ' සංස්කරණය';
   document.getElementById('cancelEditBtn').style.display = 'inline-block';
@@ -383,8 +392,12 @@ window.editStudent = function(id){
 
 window.resetStudentForm = function(){
   FIELDS.forEach(f => document.getElementById('f_'+f.n).value = '');
-  document.getElementById('group_father').classList.add('hidden');
-  document.getElementById('group_mother').classList.add('hidden');
+  FIELDS.forEach(f=>{
+    if(f.trig){
+      const box = document.getElementById('group_'+f.trig.grp);
+      if(box) box.classList.add('hidden');
+    }
+  });
   document.getElementById('studentEditId').value = '';
   document.getElementById('studentFormTitle').textContent = 'නව ශිෂ්‍යයෙක් ලියාපදිංචි කරන්න';
   document.getElementById('cancelEditBtn').style.display = 'none';
