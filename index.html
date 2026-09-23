@@ -249,8 +249,19 @@ th{background:#f6eeee;color:var(--maroon-dark);position:sticky;top:0;}
             <div class="f field"><label>මව/පියා විදේශගතව සිටීද?</label>
               <select id="s_parentsAbroad"><option value="">-- තෝරන්න --</option>
                 <option>නැත</option><option>ඔව්</option></select></div>
-            <div class="f field"><label>ඇත්නම් රට (Country)</label><input id="s_abroadCountry"></div>
-            <div class="f field"><label>විදේස් ගමන් බලපත්‍ර අංකය (Passport No.)</label><input id="s_passportNo"></div>
+            <div id="s_abroadGroup" style="display:none;">
+              <div class="f field">
+                <label>විදේශගතව සිටින්නේ කවුද?</label>
+                <div style="display:flex;gap:18px;align-items:center;padding-top:7px;">
+                  <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin:0;">
+                    <input type="checkbox" id="s_abroadMother" style="width:auto;padding:0;"> මව</label>
+                  <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin:0;">
+                    <input type="checkbox" id="s_abroadFather" style="width:auto;padding:0;"> පියා</label>
+                </div>
+              </div>
+              <div class="f field"><label>එසේනම් රට (Country)</label><input id="s_abroadCountry"></div>
+              <div class="f field"><label>විදෙස් ගමන් බලපත්‍ර අංකය (Passport No.)</label><input id="s_passportNo"></div>
+            </div>
             <div class="f field"><label>දරුවා වෛද්‍ය ප්‍රතිකාර ලබන්නේද?</label>
               <select id="s_receivingMedicalTreatment"><option value="">-- තෝරන්න --</option>
                 <option>නැත</option><option>ඔව්</option></select></div>
@@ -484,7 +495,10 @@ function wireCollection(cfg){
     e.preventDefault();
     const docId = document.getElementById(prefix + '_docId').value;
     const rec = {};
-    fieldIds.forEach(fid => { rec[fid] = document.getElementById(prefix + '_' + fid).value.trim(); });
+    fieldIds.forEach(fid => {
+      const el = document.getElementById(prefix + '_' + fid);
+      rec[fid] = (el.type === 'checkbox') ? el.checked : el.value.trim();
+    });
     try{
       if(docId){
         await setDoc(doc(db, colName, docId), rec, { merge: true });
@@ -507,7 +521,9 @@ function wireCollection(cfg){
       document.getElementById(prefix + '_docId').value = rec.id;
       fieldIds.forEach(fid=>{
         const el = document.getElementById(prefix + '_' + fid);
-        if(el) el.value = rec[fid] || '';
+        if(!el) return;
+        if(el.type === 'checkbox') el.checked = !!rec[fid];
+        else el.value = rec[fid] || '';
       });
       formTitle.textContent = editTitle;
       saveBtn.textContent = 'Update';
@@ -584,7 +600,7 @@ const studentFieldIds = ['admissionNo','childNameSinhala','childNameEnglish','in
   'initialsNameEnglish','birthDate','birthCertNo','nicNo','gradeNumber','className','gender','ethnicity',
   'religion','fatherAlive','motherAlive','fatherName','fatherOccupation','fatherPhone','motherName',
   'motherOccupation','motherPhone','declarantName','relationship','contactPhone','transport','parentsAbroad',
-  'abroadCountry','passportNo','receivingMedicalTreatment','medicalReason','subject1','subject2','subject3',
+  'abroadMother','abroadFather','abroadCountry','passportNo','receivingMedicalTreatment','medicalReason','subject1','subject2','subject3',
   'monthlyIncome'];
 
 const studentLabels = {
@@ -599,7 +615,8 @@ const studentLabels = {
   declarantName:'භාරකරු නම (Declarant)',
   relationship:'සම්බන්ධතාවය (Relationship)', contactPhone:'සම්බන්ධ වීමේ දුරකථනය',
   transport:'ප්‍රවාහන ක්‍රමය (Transport)', parentsAbroad:'මව/පියා විදේශගතව සිටීද?',
-  abroadCountry:'ඇත්නම් රට (Country)', passportNo:'විදේස් ගමන් බලපත්‍ර අංකය (Passport No.)',
+  abroadMother:'මව විදේශගතව සිටීද', abroadFather:'පියා විදේශගතව සිටීද',
+  abroadCountry:'එසේනම් රට (Country)', passportNo:'විදෙස් ගමන් බලපත්‍ර අංකය (Passport No.)',
   receivingMedicalTreatment:'දරුවා වෛද්‍ය ප්‍රතිකාර ලබන්නේද?', medicalReason:'වෛද්‍ය කරුණු / විශේෂ තොරතුරු',
   subject1:'පළමු විෂය කාණ්ඩය', subject2:'දෙවන විෂය කාණ්ඩය', subject3:'තෙවන විෂය කාණ්ඩය',
   monthlyIncome:'ආදායම් මට්ටම (Household Income)'
@@ -664,6 +681,31 @@ wireCollection({
   });
 
   toggleParentGroups(false); // initial state on page load
+})();
+
+// ---------- Conditional "parents abroad" field group ----------
+(function(){
+  const parentsAbroadSel = document.getElementById('s_parentsAbroad');
+  const abroadGroup = document.getElementById('s_abroadGroup');
+  const studentFormEl = document.getElementById('studentForm');
+  const studentTbody = document.getElementById('s_tbody');
+
+  function toggleAbroadGroup(clearHidden){
+    const show = parentsAbroadSel.value === 'ඔව්';
+    abroadGroup.style.display = show ? 'contents' : 'none';
+    if(!show && clearHidden){
+      abroadGroup.querySelectorAll('input[type="checkbox"]').forEach(i=> i.checked = false);
+      abroadGroup.querySelectorAll('input:not([type="checkbox"])').forEach(i=> i.value = '');
+    }
+  }
+
+  parentsAbroadSel.addEventListener('change', ()=> toggleAbroadGroup(true));
+  studentFormEl.addEventListener('reset', ()=> setTimeout(()=> toggleAbroadGroup(false), 0));
+  studentTbody.addEventListener('click', (e)=>{
+    if(e.target.getAttribute('data-edit')) setTimeout(()=> toggleAbroadGroup(false), 0);
+  });
+
+  toggleAbroadGroup(false); // initial state on page load
 })();
 </script>
 </body>
