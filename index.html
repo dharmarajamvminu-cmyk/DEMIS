@@ -217,6 +217,9 @@ th{background:#f6eeee;color:var(--maroon-dark);position:sticky;top:0;}
             <div class="f field"><label>ජාතික හැඳුනුම්පත් අංකය</label><input id="s_nicNo"></div>
             <div class="f field"><label>ශ්‍රේණිය (Grade No.)</label><input id="s_gradeNumber"></div>
             <div class="f field"><label>පන්තිය (Class)</label><input id="s_className"></div>
+            <div class="f field"><label>ස්ත්‍රී/පුරුෂ භාවය (Gender)</label>
+              <select id="s_gender"><option value="">-- තෝරන්න --</option>
+                <option>ස්ත්‍රී</option><option>පුරුෂ</option></select></div>
             <div class="f field"><label>ජාතිකත්වය (Ethnicity)</label>
               <select id="s_ethnicity"><option value="">-- තෝරන්න --</option>
                 <option>සිංහල</option><option>දෙමළ</option><option>මුස්ලිම්</option><option>අනෙකුත්</option></select></div>
@@ -229,11 +232,26 @@ th{background:#f6eeee;color:var(--maroon-dark);position:sticky;top:0;}
             <div class="f field"><label>මවගේ නම</label><input id="s_motherName"></div>
             <div class="f field"><label>මවගේ රැකියාව</label><input id="s_motherOccupation"></div>
             <div class="f field"><label>මවගේ දුරකථනය</label><input type="tel" id="s_motherPhone"></div>
+            <div class="f field"><label>මව/පියා ජීවත්ව සිටීද?</label><input id="s_parentsAlive" placeholder="මව: / පියා:"></div>
             <div class="f field"><label>භාරකරු නම (Declarant)</label><input id="s_declarantName"></div>
             <div class="f field"><label>සම්බන්ධතාවය (Relationship)</label><input id="s_relationship"></div>
             <div class="f field"><label>සම්බන්ධ වීමේ දුරකථනය</label><input type="tel" id="s_contactPhone"></div>
             <div class="f field"><label>ප්‍රවාහන ක්‍රමය (Transport)</label><input id="s_transport"></div>
-            <div class="f field span2"><label>වෛද්‍ය කරුණු / විශේෂ තොරතුරු</label><textarea id="s_medicalReason" rows="2"></textarea></div>
+            <div class="f field"><label>මව/පියා විදේශගතව සිටීද?</label>
+              <select id="s_parentsAbroad"><option value="">-- තෝරන්න --</option>
+                <option>නැත</option><option>ඔව්</option></select></div>
+            <div class="f field"><label>ඇත්නම් රට (Country)</label><input id="s_abroadCountry"></div>
+            <div class="f field"><label>විදේස් ගමන් බලපත්‍ර අංකය (Passport No.)</label><input id="s_passportNo"></div>
+            <div class="f field"><label>දරුවා වෛද්‍ය ප්‍රතිකාර ලබන්නේද?</label>
+              <select id="s_receivingMedicalTreatment"><option value="">-- තෝරන්න --</option>
+                <option>නැත</option><option>ඔව්</option></select></div>
+            <div class="f field span2"><label>වෛද්‍ය කරුණු / විශේෂ තොරතුරු (එසේ නම් හේතුව)</label><textarea id="s_medicalReason" rows="2"></textarea></div>
+            <div class="f field"><label>පළමු විෂය කාණ්ඩය</label><input id="s_subject1"></div>
+            <div class="f field"><label>දෙවන විෂය කාණ්ඩය</label><input id="s_subject2"></div>
+            <div class="f field"><label>තෙවන විෂය කාණ්ඩය</label><input id="s_subject3"></div>
+            <div class="f field"><label>ආදායම් මට්ටම (Household Income)</label>
+              <select id="s_monthlyIncome"><option value="">-- තෝරන්න --</option>
+                <option>මාසික ආදායම රු.15000 ට අඩු</option><option>මාසික ආදායම රු.15000 ට වැඩි</option></select></div>
           </div>
           <div class="btn-row">
             <button type="button" class="btn-secondary" id="s_cancel">Cancel</button>
@@ -554,20 +572,26 @@ wireCollection({
 
 // ---------- Students ----------
 const studentFieldIds = ['admissionNo','childNameSinhala','childNameEnglish','initialsNameSinhala',
-  'initialsNameEnglish','birthDate','birthCertNo','nicNo','gradeNumber','className','ethnicity',
+  'initialsNameEnglish','birthDate','birthCertNo','nicNo','gradeNumber','className','gender','ethnicity',
   'religion','fatherName','fatherOccupation','fatherPhone','motherName','motherOccupation','motherPhone',
-  'declarantName','relationship','contactPhone','transport','medicalReason'];
+  'parentsAlive','declarantName','relationship','contactPhone','transport','parentsAbroad','abroadCountry',
+  'passportNo','receivingMedicalTreatment','medicalReason','subject1','subject2','subject3','monthlyIncome'];
 
 const studentLabels = {
   admissionNo:'ඇතුළත් වීමේ අංකය (Admission No.)', childNameSinhala:'ශිෂ්‍ය නම - සිංහල',
   childNameEnglish:'ශිෂ්‍ය නම - English', initialsNameSinhala:'මුලකුරු සමග නම (සිංහල)',
   initialsNameEnglish:'මුලකුරු සමග නම (English)', birthDate:'උපන් දිනය', birthCertNo:'උප්පැන්න සහතික අංකය',
   nicNo:'ජාතික හැඳුනුම්පත් අංකය', gradeNumber:'ශ්‍රේණිය (Grade No.)', className:'පන්තිය (Class)',
-  ethnicity:'ජාතිකත්වය (Ethnicity)', religion:'ආගම (Religion)', fatherName:'පියාගේ නම',
-  fatherOccupation:'පියාගේ රැකියාව', fatherPhone:'පියාගේ දුරකථනය', motherName:'මවගේ නම',
-  motherOccupation:'මවගේ රැකියාව', motherPhone:'මවගේ දුරකථනය', declarantName:'භාරකරු නම (Declarant)',
+  gender:'ස්ත්‍රී/පුරුෂ භාවය (Gender)', ethnicity:'ජාතිකත්වය (Ethnicity)', religion:'ආගම (Religion)',
+  fatherName:'පියාගේ නම', fatherOccupation:'පියාගේ රැකියාව', fatherPhone:'පියාගේ දුරකථනය',
+  motherName:'මවගේ නම', motherOccupation:'මවගේ රැකියාව', motherPhone:'මවගේ දුරකථනය',
+  parentsAlive:'මව/පියා ජීවත්ව සිටීද?', declarantName:'භාරකරු නම (Declarant)',
   relationship:'සම්බන්ධතාවය (Relationship)', contactPhone:'සම්බන්ධ වීමේ දුරකථනය',
-  transport:'ප්‍රවාහන ක්‍රමය (Transport)', medicalReason:'වෛද්‍ය කරුණු / විශේෂ තොරතුරු'
+  transport:'ප්‍රවාහන ක්‍රමය (Transport)', parentsAbroad:'මව/පියා විදේශගතව සිටීද?',
+  abroadCountry:'ඇත්නම් රට (Country)', passportNo:'විදේස් ගමන් බලපත්‍ර අංකය (Passport No.)',
+  receivingMedicalTreatment:'දරුවා වෛද්‍ය ප්‍රතිකාර ලබන්නේද?', medicalReason:'වෛද්‍ය කරුණු / විශේෂ තොරතුරු',
+  subject1:'පළමු විෂය කාණ්ඩය', subject2:'දෙවන විෂය කාණ්ඩය', subject3:'තෙවන විෂය කාණ්ඩය',
+  monthlyIncome:'ආදායම් මට්ටම (Household Income)'
 };
 
 wireCollection({
