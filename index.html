@@ -90,6 +90,7 @@ th{background:#f6eeee;color:var(--maroon-dark);position:sticky;top:0;}
   border-radius:8px;font-size:.82rem;opacity:0;transform:translateY(10px);transition:.25s;z-index:50;}
 .status.show{opacity:1;transform:translateY(0);}
 .status.error{background:var(--danger);}
+.uppercase-input{text-transform:uppercase;}
 </style>
 </head>
 <body>
@@ -209,9 +210,9 @@ th{background:#f6eeee;color:var(--maroon-dark);position:sticky;top:0;}
           <div class="grid">
             <div class="f field"><label>ඇතුළත් වීමේ අංකය (Admission No.) *</label><input id="s_admissionNo" required></div>
             <div class="f field"><label>ශිෂ්‍ය නම - සිංහල</label><input id="s_childNameSinhala" required></div>
-            <div class="f field"><label>ශිෂ්‍ය නම - English</label><input id="s_childNameEnglish"></div>
+            <div class="f field"><label>ශිෂ්‍ය නම - English</label><input id="s_childNameEnglish" class="uppercase-input" autocapitalize="characters"></div>
             <div class="f field"><label>මුලකුරු සමග නම (සිංහල)</label><input id="s_initialsNameSinhala"></div>
-            <div class="f field"><label>මුලකුරු සමග නම (English)</label><input id="s_initialsNameEnglish"></div>
+            <div class="f field"><label>මුලකුරු සමග නම (English)</label><input id="s_initialsNameEnglish" class="uppercase-input" autocapitalize="characters"></div>
             <div class="f field"><label>උපන් දිනය</label><input type="date" id="s_birthDate"></div>
             <div class="f field"><label>වයස (Age)</label><input id="s_age" readonly style="background:#f3f1f1;"></div>
             <div class="f field"><label>උප්පැන්න සහතික අංකය</label><input id="s_birthCertNo"></div>
@@ -761,6 +762,18 @@ wireCollection({
   });
 
   toggleMedicalReason(false); // initial state on page load
+})();
+
+// ---------- Force block/upper-case letters for English name fields ----------
+(function(){
+  ['s_childNameEnglish','s_initialsNameEnglish'].forEach(id=>{
+    const el = document.getElementById(id);
+    el.addEventListener('input', ()=>{
+      const pos = el.selectionStart;
+      el.value = el.value.toUpperCase();
+      el.setSelectionRange(pos, pos);
+    });
+  });
 })();
 </script>
 </body>
