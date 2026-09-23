@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ගුරු දත්ත ගබඩාව / Teacher Database</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <header class="app-header no-print">
+    <div class="header-inner">
+      <div class="header-title">
+        <span class="header-logo">🏫</span>
+        <div>
+          <h1>ගුරු දත්ත ගබඩාව</h1>
+          <p>Teacher Database</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <span id="adminEmail" class="admin-email"></span>
+        <button id="logoutBtn" class="btn btn-outline">ඉවත් වන්න</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="dashboardContent" class="container" style="display:none;">
+
+    <!-- STATS -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-value" id="statTotal">0</span>
+        <span class="stat-label">මුළු ගුරුවරුන්</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value" id="statTeacher">0</span>
+        <span class="stat-label">ගුරුවරු</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value" id="statPrincipal">0</span>
+        <span class="stat-label">ප්‍රධාන ගුරුවරු</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value" id="statDeputy">0</span>
+        <span class="stat-label">උප ගුරුවරු</span>
+      </div>
+    </section>
+
+    <!-- ADD / EDIT FORM -->
+    <section class="card no-print">
+      <h2 id="formTitle" class="card-title">නව ගුරුවරයෙකු එක් කරන්න</h2>
+      <div id="formMsg" class="form-msg" style="display:none;"></div>
+
+      <form id="teacherForm" class="teacher-form">
+
+        <h3 class="section-title">පුද්ගලික තොරතුරු</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="nic">ජාතික හැඳුනුම්පත් අංකය *</label>
+            <input type="text" id="nic" required />
+          </div>
+          <div class="form-group">
+            <label for="fullName">සම්පූර්ණ නම *</label>
+            <input type="text" id="fullName" required />
+          </div>
+          <div class="form-group">
+            <label for="address">ලිපිනය</label>
+            <input type="text" id="address" />
+          </div>
+          <div class="form-group">
+            <label for="dob">උපන් දිනය</label>
+            <input type="date" id="dob" />
+          </div>
+          <div class="form-group">
+            <label for="gender">ස්ත්‍රී/පුරුෂ භාවය</label>
+            <select id="gender">
+              <option value="">තෝරන්න</option>
+              <option value="පුරුෂ">පුරුෂ</option>
+              <option value="ස්ත්‍රී">ස්ත්‍රී</option>
+            </select>
+          </div>
+        </div>
+
+        <h3 class="section-title">සම්බන්ධතා</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="phone">දුරකථන අංකය</label>
+            <input type="tel" id="phone" />
+          </div>
+          <div class="form-group">
+            <label for="whatsapp">WhatsApp අංකය</label>
+            <input type="tel" id="whatsapp" />
+          </div>
+        </div>
+
+        <h3 class="section-title">සේවා තොරතුරු</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="position">තනතුර</label>
+            <select id="position">
+              <option value="">තෝරන්න</option>
+              <option value="ගුරු">ගුරු</option>
+              <option value="ප්‍රධාන ගුරු">ප්‍රධාන ගුරු</option>
+              <option value="උප ගුරු">උප ගුරු</option>
+              <option value="ක්‍රීඩා පුහුණුකරු">ක්‍රීඩා පුහුණුකරු</option>
+              <option value="සංවර්ධන නිළධාරි">සංවර්ධන නිළධාරි</option>
+              <option value="අනෙකුත්">අනෙකුත්</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="grade">ශ්‍රේණිය / පන්තිය</label>
+            <input type="text" id="grade" />
+          </div>
+          <div class="form-group">
+            <label for="firstAppointmentDate">මුල්පත්වීම් දිනය</label>
+            <input type="date" id="firstAppointmentDate" />
+          </div>
+          <div class="form-group">
+            <label for="schoolJoinDate">මෙම විද්‍යාලයට පත් වූ දිනය</label>
+            <input type="date" id="schoolJoinDate" />
+          </div>
+        </div>
+
+        <h3 class="section-title">සුදුසුකම්</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="educationalQualifications">අධ්‍යාපන සුදුසුකම්</label>
+            <textarea id="educationalQualifications" rows="2"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="professionalQualifications">වෘත්තීය සුදුසුකම්</label>
+            <textarea id="professionalQualifications" rows="2"></textarea>
+          </div>
+        </div>
+
+        <h3 class="section-title">ලියාපදිංචි තොරතුරු</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="registerNo">ලේඛනයේ අංකය</label>
+            <input type="text" id="registerNo" />
+          </div>
+          <div class="form-group">
+            <label for="widowsOrphansNo">වැන්දඹු/අනාථ අංකය</label>
+            <input type="text" id="widowsOrphansNo" />
+          </div>
+        </div>
+
+        <h3 class="section-title">පෙර සේවා තොරතුරු</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="previousSchool">මීට පෙර සේවය කළ පාසල</label>
+            <input type="text" id="previousSchool" />
+          </div>
+          <div class="form-group">
+            <label for="previousSchoolPeriod">එම පාසලේ සේවය කළ කාලය</label>
+            <input type="text" id="previousSchoolPeriod" />
+          </div>
+        </div>
+
+        <h3 class="section-title">වැටුප් තොරතුරු</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="salaryAccountNo">වැටුප් ලබන ගිණුම් අංකය</label>
+            <input type="text" id="salaryAccountNo" />
+          </div>
+          <div class="form-group">
+            <label for="bank">බැංකුව</label>
+            <select id="bank">
+              <option value="">තෝරන්න</option>
+              <option value="මහජන බැංකුව">මහජන බැංකුව</option>
+              <option value="ලංකා බැංකුව">ලංකා බැංකුව</option>
+              <option value="ජාතික ඉතිරිකිරීමේ බැංකුව">ජාතික ඉතිරිකිරීමේ බැංකුව</option>
+              <option value="රාජ්‍ය උකස් හා ආයෝජන බැංකුව">රාජ්‍ය උකස් හා ආයෝජන බැංකුව</option>
+              <option value="අනෙකුත්">අනෙකුත්</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="branch">ශාඛාව</label>
+            <input type="text" id="branch" />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" id="saveBtn" class="btn btn-primary">සුරකින්න</button>
+          <button type="button" id="cancelEditBtn" class="btn btn-outline" style="display:none;">අවලංගු කරන්න</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- TEACHER LIST -->
+    <section class="card" id="teacherListSection">
+      <div class="list-header no-print">
+        <h2 class="card-title">ගුරු ලේඛනය</h2>
+        <div class="list-header-actions">
+          <input type="text" id="searchInput" placeholder="නම හෝ හැඳුනුම්පත් අංකයෙන් සොයන්න..." class="search-input" />
+          <button id="exportCsvBtn" class="btn btn-outline">CSV ලෙස බාගත කරන්න</button>
+          <button id="printListBtn" class="btn btn-outline">ගුරු ලේඛනය මුද්‍රණය කරන්න</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="teacher-table">
+          <thead>
+            <tr>
+              <th>NIC</th>
+              <th>නම</th>
+              <th>තනතුර</th>
+              <th>දුරකථනය</th>
+              <th>බැංකුව / ශාඛාව</th>
+              <th class="no-print">ක්‍රියා</th>
+            </tr>
+          </thead>
+          <tbody id="teacherTableBody">
+            <tr id="loadingRow"><td colspan="6" class="center-cell">දත්ත ලබාගනිමින් පවතී...</td></tr>
+            <tr id="emptyRow" style="display:none;"><td colspan="6" class="center-cell">ගුරුවරුන් සොයාගත නොහැක.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- VIEW DETAILS MODAL -->
+  <div id="viewModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header no-print">
+        <button id="printTeacherBtn" class="btn btn-outline btn-sm">ගුරුවරයාගේ තොරතුරු මුද්‍රණය කරන්න</button>
+        <button id="closeViewModal" class="btn-close">✕</button>
+      </div>
+      <div id="viewModalBody" class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- DELETE CONFIRM MODAL -->
+  <div id="deleteModal" class="modal-overlay no-print">
+    <div class="modal-box modal-small">
+      <p class="delete-msg">මෙම ගුරුවරයාගේ වාර්තාව මකා දැමීමට ඔබට අවශ්‍යද?</p>
+      <div class="modal-actions">
+        <button id="confirmDeleteBtn" class="btn btn-danger">මකන්න</button>
+        <button id="cancelDeleteBtn" class="btn btn-outline">අවලංගු කරන්න</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/teachers.js"></script>
+  <script type="module" src="js/dashboard.js"></script>
+</body>
+</html>

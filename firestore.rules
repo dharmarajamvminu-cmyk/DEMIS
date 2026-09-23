@@ -1,0 +1,16 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // "teachers" collection - Authenticated admin users සඳහා පමණක් Read/Write
+    match /teachers/{nic} {
+      allow read, write: if request.auth != null;
+    }
+
+    // වෙනත් සියලුම collections වලට access අවහිර කරන්න
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
