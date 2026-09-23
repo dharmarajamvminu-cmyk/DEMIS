@@ -215,29 +215,6 @@ select{
 }
 select.empty{ color:#A9B5B2; }
 
-/* photo capture / upload buttons */
-.photo-actions{ display:flex; flex-wrap:wrap; gap:8px; }
-.photo-btn{
-  display:inline-flex; align-items:center; gap:8px;
-  padding:10px 15px;
-  border:1.5px solid var(--line);
-  border-radius:8px;
-  background:#FCFDFD;
-  color:#2C3A37;
-  font-size:14px; font-weight:500;
-  cursor:pointer;
-  transition:border-color .15s, background .15s;
-}
-.photo-btn:hover{ border-color:var(--brand); background:#F1F7F5; color:var(--brand-dark); }
-.photo-btn svg{ flex:none; }
-.photo-remove{
-  margin-top:8px;
-  border:none; background:none; padding:0;
-  font-size:12.5px; color:var(--error);
-  font-weight:500; text-decoration:underline;
-  cursor:pointer;
-}
-
 /* choice chips */
 .choices{ display:flex; flex-wrap:wrap; gap:8px; }
 .choices.stack{ flex-direction:column; align-items:stretch; }
@@ -485,27 +462,6 @@ button:focus-visible, .chip:focus-within{
         </select>
         <span class="err">පන්තිය තෝරන්න</span>
         <span class="hint">ශ්‍රේණිය සහ පන්තිය මගින් ශිෂ්‍යයන් පන්ති අනුව වර්ග කරනු ලැබේ.</span>
-      </div>
-
-      <div class="f">
-        <label>ශිෂ්‍යයාගේ ඡායාරූපය <span class="opt">— පාස්පෝට් ප්‍රමාණයේ, JPG/PNG, උපරිම 3MB</span></label>
-        <div class="photo-actions">
-          <button type="button" class="photo-btn" id="photoCameraBtn">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            කැමරාවෙන් ගන්න
-          </button>
-          <button type="button" class="photo-btn" id="photoUploadBtn">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            ගොනුවක් තෝරන්න
-          </button>
-        </div>
-        <input type="file" id="studentPhotoCamera" name="studentPhotoCamera" accept="image/*" capture="environment" style="display:none">
-        <input type="file" id="studentPhoto" name="studentPhoto" accept="image/png,image/jpeg,image/webp" style="display:none">
-        <span class="err" id="photoErr">ඡායාරූපයේ ප්‍රමාණය ඉතා විශාලයි (උපරිම 3MB) හෝ වැරදි ආකෘතියකි</span>
-        <div id="photoPreviewWrap" style="display:none;margin-top:10px;">
-          <img id="photoPreview" alt="" style="max-width:110px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.18);display:block;">
-          <button type="button" id="photoRemoveBtn" class="photo-remove">ඡායාරූපය ඉවත් කරන්න</button>
-        </div>
       </div>
 
       <div class="f">
@@ -817,8 +773,6 @@ button:focus-visible, .chip:focus-within{
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import { getFirestore, collection, addDoc, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL }
-  from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
 
 /* ==========================================================================
    Firebase සැකසුම් — මෙතන ඔබේ project එකේ අගයන් දාන්න.
@@ -828,7 +782,6 @@ const firebaseConfig = {
   apiKey: "AIzaSyBPPaWvOSTWeflv9ucnBoyQbZARDw6pSJU",
   authDomain: "demis-9e3c8.firebaseapp.com",
   projectId: "demis-9e3c8",
-  storageBucket: "demis-9e3c8.firebasestorage.app",
   messagingSenderId: "727272188704",
   appId: "1:727272188704:web:4f3894c1bb52e8b2a20545",
   measurementId: "G-S7N1CVLEPP"
@@ -836,8 +789,6 @@ const firebaseConfig = {
 
 const fbApp   = initializeApp(firebaseConfig);
 const db      = getFirestore(fbApp);
-const storage = getStorage(fbApp);
-const MAX_PHOTO_BYTES = 3 * 1024 * 1024; // 3MB
 
 /* ---------- elements ---------- */
 const form     = document.getElementById("form");
@@ -851,55 +802,6 @@ const statusEl = document.getElementById("status");
 const reviewEl = document.getElementById("review");
 const doneEl   = document.getElementById("done");
 const nav      = document.getElementById("nav");
-
-const photoCameraInput = document.getElementById("studentPhotoCamera");
-const photoInput       = document.getElementById("studentPhoto");
-const photoCameraBtn   = document.getElementById("photoCameraBtn");
-const photoUploadBtn   = document.getElementById("photoUploadBtn");
-const photoRemoveBtn   = document.getElementById("photoRemoveBtn");
-const photoPreviewWrap = document.getElementById("photoPreviewWrap");
-const photoPreview     = document.getElementById("photoPreview");
-const photoField       = photoInput.closest(".f");
-let   selectedPhotoFile = null;
-
-photoCameraBtn.addEventListener("click", ()=> photoCameraInput.click());
-photoUploadBtn.addEventListener("click", ()=> photoInput.click());
-
-function handlePhotoFile(f, sourceInput){
-  photoField.classList.remove("bad");
-  if(!f) return;
-  const okType = /^image\/(png|jpeg|webp)$/.test(f.type);
-  if(!okType || f.size > MAX_PHOTO_BYTES){
-    photoField.classList.add("bad");
-    selectedPhotoFile = null;
-    sourceInput.value = "";
-    photoPreviewWrap.style.display = "none";
-    return;
-  }
-  selectedPhotoFile = f;
-  const reader = new FileReader();
-  reader.onload = ()=>{
-    photoPreview.src = reader.result;
-    photoPreviewWrap.style.display = "block";
-  };
-  reader.readAsDataURL(f);
-}
-
-photoCameraInput.addEventListener("change", ()=>{
-  photoInput.value = "";
-  handlePhotoFile(photoCameraInput.files[0], photoCameraInput);
-});
-photoInput.addEventListener("change", ()=>{
-  photoCameraInput.value = "";
-  handlePhotoFile(photoInput.files[0], photoInput);
-});
-photoRemoveBtn.addEventListener("click", ()=>{
-  selectedPhotoFile = null;
-  photoCameraInput.value = "";
-  photoInput.value = "";
-  photoPreviewWrap.style.display = "none";
-  photoField.classList.remove("bad");
-});
 
 const LAST = steps.length - 1;
 let cur = 0;
@@ -1057,7 +959,6 @@ const GROUPS = [
 function collect(){
   const d = {};
   new FormData(form).forEach((v,k)=>{
-    if(k === "studentPhoto" || k === "studentPhotoCamera") return; // handled separately (uploaded to Storage)
     d[k] = typeof v === "string" ? v.trim() : v;
   });
   if(d.religion === "වෙනත්" && d.religionOther) d.religion = d.religionOther;
@@ -1127,14 +1028,6 @@ async function submit(){
   statusEl.className = "status";
 
   try{
-    if(selectedPhotoFile){
-      nextBtn.textContent = "ඡායාරූපය උඩුගත වෙමින්...";
-      const path = "student-photos/" + Date.now() + "_" + Math.random().toString(36).slice(2,8);
-      const photoRef = storageRef(storage, path);
-      await uploadBytes(photoRef, selectedPhotoFile, { contentType: selectedPhotoFile.type });
-      record.photoURL = await getDownloadURL(photoRef);
-      nextBtn.textContent = "යවමින්...";
-    }
     const ref = await addDoc(collection(db, "demis_registrations"), record);
     try{ localStorage.removeItem(KEY); }catch(e){}
     form.style.display = "none";
