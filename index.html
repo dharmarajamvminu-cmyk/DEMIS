@@ -107,6 +107,10 @@ th{background:#f6eeee;color:var(--maroon-dark);position:sticky;top:0;}
 .subtabs button.active{background:var(--maroon);color:#fff;}
 .subtabpanel{display:none;}
 .subtabpanel.active{display:block;}
+.subject-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+.subject-row .m-subj-name{flex:1;}
+.subject-row .m-subj-marks{width:100px;flex:none;}
+.subject-row button{flex:none;padding:6px 10px;font-size:.78rem;}
 </style>
 </head>
 <body>
@@ -153,6 +157,7 @@ th{background:#f6eeee;color:var(--maroon-dark);position:sticky;top:0;}
   <nav class="tabs">
     <button data-tab="teachers" class="active">ගුරු දත්ත ගබඩාව (Teachers)</button>
     <button data-tab="students">සිසු ලේඛනය (Students)</button>
+    <button data-tab="marks">ලකුණු හා ප්‍රතිඵල කළමනාකරණය (Marks &amp; Results)</button>
   </nav>
 
   <div class="wrap">
@@ -380,6 +385,70 @@ th{background:#f6eeee;color:var(--maroon-dark);position:sticky;top:0;}
         <div class="empty" id="a_empty" style="display:none;">තවම වාර්තා නොමැත</div>
       </div>
       </div><!-- /s-panel-archive -->
+    </section>
+
+    <!-- ---------- MARKS & RESULTS MANAGEMENT TAB ---------- -->
+    <section class="tabpanel" id="tab-marks">
+      <div class="card">
+        <h2 id="marksFormTitle">නව ලකුණු වාර්තාවක් එක් කරන්න (Add Marks Record)</h2>
+        <form id="marksForm">
+          <input type="hidden" id="m_docId">
+          <input type="hidden" id="m_studentId">
+          <input type="hidden" id="m_admissionNo">
+          <input type="hidden" id="m_childNameSinhala">
+          <input type="hidden" id="m_gradeNumber">
+          <input type="hidden" id="m_className">
+          <div class="grid">
+            <div class="f field span2">
+              <label>සිසුවා තෝරන්න * (නම හෝ Admission No ටයිප් කර ලැයිස්තුවෙන් තෝරන්න)</label>
+              <input id="m_studentPick" list="m_studentList" placeholder="සිසුවා සොයන්න..." autocomplete="off" required>
+              <datalist id="m_studentList"></datalist>
+            </div>
+            <div class="f field"><label>වර්ෂය * (Year)</label><input id="m_year" placeholder="උදා: 2026" required></div>
+            <div class="f field"><label>වාරය * (Term)</label>
+              <select id="m_term" required><option value="">-- තෝරන්න --</option>
+                <option>පළමු වාරය</option><option>දෙවන වාරය</option><option>තෙවන වාරය</option></select></div>
+          </div>
+          <div id="m_pickedInfo" style="margin:2px 0 16px;font-size:.83rem;color:var(--muted);min-height:1.1em;"></div>
+
+          <div style="font-weight:600;color:var(--maroon);margin-bottom:8px;">විෂයයන් සහ ලකුණු (Subjects &amp; Marks) — 100 කින්</div>
+          <div id="m_subjectsBody"></div>
+          <datalist id="m_subjectSuggestions"></datalist>
+          <button type="button" class="btn-secondary" id="m_addSubject" style="margin:4px 0 18px;">+ විෂයයක් එකතු කරන්න (Add Subject)</button>
+
+          <div class="f field span2"><label>ගුරු අදහස් / සටහන් (Remarks)</label><textarea id="m_remarks" rows="2"></textarea></div>
+
+          <div class="btn-row">
+            <button type="button" class="btn-secondary" id="m_cancel">Cancel</button>
+            <button type="submit" class="btn-save" id="m_save">Save</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="toolbar">
+          <h2 style="margin:0;">ලකුණු ලේඛනය (Results)</h2>
+          <div class="search"><input id="m_search" placeholder="නම හෝ Adm. No සොයන්න..."></div>
+          <div class="export-group">
+            <button class="btn-export csv" id="m_exportCsv">CSV</button>
+            <button class="btn-export xlsx" id="m_exportXlsx">Excel</button>
+            <button class="btn-export pdf" id="m_exportPdf">PDF</button>
+          </div>
+        </div>
+        <div class="filters">
+          <b>පෙරහන (Filter):</b>
+          <select id="m_fYear"><option value="">සියලු වර්ෂ</option></select>
+          <select id="m_fTerm"><option value="">සියලු වාර</option><option>පළමු වාරය</option><option>දෙවන වාරය</option><option>තෙවන වාරය</option></select>
+          <select id="m_fGrade"><option value="">සියලු ශ්‍රේණි</option><option value="1">ශ්‍රේණිය 1</option><option value="2">ශ්‍රේණිය 2</option><option value="3">ශ්‍රේණිය 3</option><option value="4">ශ්‍රේණිය 4</option><option value="5">ශ්‍රේණිය 5</option><option value="6">ශ්‍රේණිය 6</option><option value="7">ශ්‍රේණිය 7</option><option value="8">ශ්‍රේණිය 8</option><option value="9">ශ්‍රේණිය 9</option><option value="10">ශ්‍රේණිය 10</option><option value="11">ශ්‍රේණිය 11</option><option value="12">ශ්‍රේණිය 12</option><option value="13">ශ්‍රේණිය 13</option></select>
+          <select id="m_fClass"><option value="">සියලු පන්ති</option><option value="A">A</option><option value="B">B</option><option value="කලා අංශය">කලා අංශය</option></select>
+        </div>
+        <div class="count" id="m_count"></div>
+        <div class="table-scroll">
+          <table><thead><tr><th>Adm. No</th><th>නම</th><th>ශ්‍රේණිය/පන්තිය</th><th>වර්ෂය</th><th>වාරය</th><th>මුළු ලකුණු</th><th>සාමාන්‍යය</th><th>ශ්‍රේණිය</th><th>ස්ථානය</th><th>ක්‍රියා</th></tr></thead>
+          <tbody id="m_tbody"></tbody></table>
+        </div>
+        <div class="empty" id="m_empty" style="display:none;">තවම වාර්තා නොමැත</div>
+      </div>
     </section>
 
   </div>
@@ -988,6 +1057,7 @@ const studentsApi = wireCollection({
   $('d_pdf').addEventListener('click', ()=>{
     if(!cur) return;
     if(cur.kind === 'teacher') teacherPdf(cur.rec, cur.fieldIds, cur.labels);
+    else if(cur.kind === 'marks') resultPdf(cur.rec);
     else recordPdf(cur.rec, cur.fieldIds, cur.labels);
   });
 
@@ -1123,6 +1193,257 @@ const studentsApi = wireCollection({
   $('ta_exportCsv').addEventListener('click', ()=> staffArchVisible.length ? csvDownload('staff_archive.csv', archiveTeacherFieldIds, archiveTeacherLabels, staffArchVisible) : none());
   $('ta_exportXlsx').addEventListener('click', ()=> staffArchVisible.length ? excelDownload('staff_archive.xlsx', archiveTeacherFieldIds, archiveTeacherLabels, staffArchVisible) : none());
   $('ta_exportPdf').addEventListener('click', ()=> staffArchVisible.length ? pdfDownload('විශ්‍රාම ගිය / මාරු වූ කාර්ය මණ්ඩලය - ධර්මරාජ විද්‍යාලය', archiveTeacherFieldIds, archiveTeacherLabels, staffArchVisible) : none());
+
+  // ================= Marks & Results Management =================
+  const MARKS = 'marks';
+  const marksFieldIds = ['admissionNo','childNameSinhala','gradeNumber','className','year','term','subjectsText','totalMarks','average','grade','rankText','remarks'];
+  const marksLabels = {
+    admissionNo:'ඇතුළත් වීමේ අංකය (Admission No.)', childNameSinhala:'ශිෂ්‍ය නම', gradeNumber:'ශ්‍රේණිය',
+    className:'පන්තිය', year:'වර්ෂය', term:'වාරය', subjectsText:'විෂයයන් හා ලකුණු', totalMarks:'මුළු ලකුණු',
+    average:'සාමාන්‍යය', grade:'සමස්ත ශ්‍රේණිගත කිරීම', rankText:'පන්තියේ ස්ථානය', remarks:'සටහන්'
+  };
+
+  function gradeFor(n){
+    n = parseFloat(n);
+    if(isNaN(n)) return '-';
+    if(n >= 75) return 'A';
+    if(n >= 65) return 'B';
+    if(n >= 50) return 'C';
+    if(n >= 35) return 'S';
+    return 'F';
+  }
+
+  let marksRecords = [], marksVisible = [];
+
+  function refreshStudentDatalist(){
+    $('m_studentList').innerHTML = studentsApi.getRecords().map(s =>
+      `<option value="${escapeHtml(s.admissionNo)} — ${escapeHtml(s.childNameSinhala)} (ශ්‍රේ.${escapeHtml(s.gradeNumber||'')} ${escapeHtml(s.className||'')})">`
+    ).join('');
+  }
+  $('m_studentPick').addEventListener('focus', refreshStudentDatalist);
+
+  function matchStudentFromPick(){
+    const v = $('m_studentPick').value.trim();
+    const adm = v.split(' — ')[0].trim();
+    const rec = studentsApi.getRecords().find(s => s.admissionNo === adm);
+    if(rec){
+      $('m_studentId').value = rec.id;
+      $('m_admissionNo').value = rec.admissionNo;
+      $('m_childNameSinhala').value = rec.childNameSinhala;
+      $('m_gradeNumber').value = rec.gradeNumber;
+      $('m_className').value = rec.className;
+      $('m_pickedInfo').textContent = `තෝරාගත්: ${rec.childNameSinhala} — ${rec.admissionNo} (ශ්‍රේණිය ${rec.gradeNumber||''} ${rec.className||''})`;
+    }else{
+      $('m_studentId').value = '';
+      $('m_pickedInfo').textContent = v ? 'සිසුවා හමු නොවීය — ලැයිස්තුවෙන් නිවැරදිව තෝරන්න' : '';
+    }
+  }
+  $('m_studentPick').addEventListener('input', matchStudentFromPick);
+  $('m_studentPick').addEventListener('change', matchStudentFromPick);
+
+  function addSubjectRow(name, marks){
+    const row = document.createElement('div');
+    row.className = 'subject-row';
+    row.innerHTML = `<input class="m-subj-name" list="m_subjectSuggestions" placeholder="විෂය නම">
+      <input class="m-subj-marks" type="number" min="0" max="100" step="0.5" placeholder="ලකුණු">
+      <button type="button" class="btn-del">✕</button>`;
+    row.querySelector('.m-subj-name').value = name || '';
+    row.querySelector('.m-subj-marks').value = (marks === undefined || marks === null) ? '' : marks;
+    row.querySelector('.btn-del').addEventListener('click', ()=> row.remove());
+    $('m_subjectsBody').appendChild(row);
+  }
+  $('m_addSubject').addEventListener('click', ()=> addSubjectRow());
+
+  function resetMarksForm(){
+    $('marksForm').reset();
+    ['m_docId','m_studentId','m_admissionNo','m_childNameSinhala','m_gradeNumber','m_className'].forEach(id => $(id).value = '');
+    $('m_pickedInfo').textContent = '';
+    $('m_subjectsBody').innerHTML = '';
+    for(let i = 0; i < 5; i++) addSubjectRow();
+    $('marksFormTitle').textContent = 'නව ලකුණු වාර්තාවක් එක් කරන්න (Add Marks Record)';
+    $('m_save').textContent = 'Save';
+  }
+  resetMarksForm();
+
+  function refreshSubjectSuggestions(){
+    const names = new Set();
+    marksRecords.forEach(r => (r.subjects || []).forEach(s => { if(s.name) names.add(s.name); }));
+    $('m_subjectSuggestions').innerHTML = [...names].map(n => `<option value="${escapeHtml(n)}">`).join('');
+  }
+
+  function refreshYearFilterOptions(){
+    const years = [...new Set(marksRecords.map(r => r.year).filter(Boolean))].sort().reverse();
+    const sel = $('m_fYear'); const keep = sel.value;
+    sel.innerHTML = '<option value="">සියලු වර්ෂ</option>' + years.map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join('');
+    sel.value = years.includes(keep) ? keep : '';
+  }
+
+  function computeRanks(list){
+    const groups = {};
+    list.forEach(r=>{
+      const key = [r.year, r.term, r.gradeNumber, r.className].join('||');
+      (groups[key] = groups[key] || []).push(r);
+    });
+    Object.values(groups).forEach(g=>{
+      g.sort((a,b) => (b.average || 0) - (a.average || 0));
+      g.forEach((r,i) => { r.rankText = `${i+1} / ${g.length}`; });
+    });
+  }
+
+  function renderMarks(){
+    const q = $('m_search').value.trim().toLowerCase();
+    const y = $('m_fYear').value, t = $('m_fTerm').value, g = $('m_fGrade').value, c = $('m_fClass').value;
+    marksVisible = marksRecords.filter(r=>{
+      if(y && r.year !== y) return false;
+      if(t && r.term !== t) return false;
+      if(g && String(r.gradeNumber) !== g) return false;
+      if(c && r.className !== c) return false;
+      if(q && !((r.childNameSinhala||'').toLowerCase().includes(q) || (r.admissionNo||'').toLowerCase().includes(q))) return false;
+      return true;
+    });
+    $('m_tbody').innerHTML = '';
+    $('m_empty').style.display = marksVisible.length ? 'none' : 'block';
+    marksVisible.forEach(r=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${escapeHtml(r.admissionNo)}</td><td>${escapeHtml(r.childNameSinhala)}</td>
+        <td>${escapeHtml(r.gradeNumber)} ${escapeHtml(r.className)}</td><td>${escapeHtml(r.year)}</td><td>${escapeHtml(r.term)}</td>
+        <td>${escapeHtml(r.totalMarks)}</td><td>${escapeHtml(r.average)}</td><td>${escapeHtml(r.grade)}</td><td>${escapeHtml(r.rankText||'-')}</td>
+        <td><button class="btn-edit" data-mview="${r.id}">View</button><button class="btn-edit" data-medit="${r.id}">Edit</button><button class="btn-export pdf" data-mpdf="${r.id}">PDF</button><button class="btn-del" data-mdel="${r.id}">Delete</button></td>`;
+      $('m_tbody').appendChild(tr);
+    });
+    $('m_count').textContent = `මුළු වාර්තා ගණන: ${marksRecords.length}` + (marksVisible.length !== marksRecords.length ? ` — ${marksVisible.length} matching` : '');
+  }
+
+  onSnapshot(query(collection(db, MARKS), orderBy('childNameSinhala')), snap=>{
+    marksRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    computeRanks(marksRecords);
+    refreshSubjectSuggestions();
+    refreshYearFilterOptions();
+    renderMarks();
+  }, err => showStatus('ලකුණු දත්ත දෝෂයක්: ' + err.message, true));
+
+  ['m_search','m_fYear','m_fTerm','m_fGrade','m_fClass'].forEach(id => $(id).addEventListener('input', renderMarks));
+  ['m_fYear','m_fTerm','m_fGrade','m_fClass'].forEach(id => $(id).addEventListener('change', renderMarks));
+
+  $('marksForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    if(!$('m_studentId').value){ showStatus('කරුණාකර ලැයිස්තුවෙන් වලංගු සිසුවෙකු තෝරන්න', true); return; }
+    const subjects = [...document.querySelectorAll('#m_subjectsBody .subject-row')].map(row=>{
+      const name = row.querySelector('.m-subj-name').value.trim();
+      const mv = row.querySelector('.m-subj-marks').value;
+      return { name, marks: mv === '' ? null : parseFloat(mv) };
+    }).filter(s => s.name);
+    if(!subjects.length){ showStatus('අවම වශයෙන් විෂයයක් සහ ලකුණු ඇතුළත් කරන්න', true); return; }
+    const validMarks = subjects.filter(s => s.marks !== null && !isNaN(s.marks));
+    const total = validMarks.reduce((a,s) => a + s.marks, 0);
+    const avg = validMarks.length ? Math.round((total / validMarks.length) * 100) / 100 : 0;
+    subjects.forEach(s => { s.grade = (s.marks !== null && !isNaN(s.marks)) ? gradeFor(s.marks) : '-'; });
+    const rec = {
+      studentId: $('m_studentId').value,
+      admissionNo: $('m_admissionNo').value,
+      childNameSinhala: $('m_childNameSinhala').value,
+      gradeNumber: $('m_gradeNumber').value,
+      className: $('m_className').value,
+      year: $('m_year').value.trim(),
+      term: $('m_term').value,
+      subjects,
+      subjectsText: subjects.map(s => `${s.name}: ${(s.marks !== null && !isNaN(s.marks)) ? s.marks : '-'}`).join(', '),
+      totalMarks: total,
+      average: avg,
+      grade: gradeFor(avg),
+      remarks: $('m_remarks').value.trim()
+    };
+    const docId = $('m_docId').value;
+    try{
+      if(docId) await setDoc(doc(db, MARKS, docId), rec, { merge: true });
+      else await addDoc(collection(db, MARKS), rec);
+      showStatus('ලකුණු සුරැකින ලදී (Saved)');
+      resetMarksForm();
+    }catch(err){ showStatus('සුරැකීමේ දෝෂයක්: ' + err.message, true); }
+  });
+  $('m_cancel').addEventListener('click', resetMarksForm);
+
+  function loadMarksIntoForm(rec){
+    $('m_docId').value = rec.id;
+    $('m_studentId').value = rec.studentId || '';
+    $('m_admissionNo').value = rec.admissionNo || '';
+    $('m_childNameSinhala').value = rec.childNameSinhala || '';
+    $('m_gradeNumber').value = rec.gradeNumber || '';
+    $('m_className').value = rec.className || '';
+    $('m_studentPick').value = `${rec.admissionNo || ''} — ${rec.childNameSinhala || ''} (ශ්‍රේ.${rec.gradeNumber || ''} ${rec.className || ''})`;
+    $('m_pickedInfo').textContent = `තෝරාගත්: ${rec.childNameSinhala||''} — ${rec.admissionNo||''} (ශ්‍රේණිය ${rec.gradeNumber||''} ${rec.className||''})`;
+    $('m_year').value = rec.year || '';
+    $('m_term').value = rec.term || '';
+    $('m_remarks').value = rec.remarks || '';
+    $('m_subjectsBody').innerHTML = '';
+    (rec.subjects && rec.subjects.length ? rec.subjects : [{}]).forEach(s => addSubjectRow(s.name, s.marks));
+    $('marksFormTitle').textContent = 'ලකුණු වාර්තාව සංස්කරණය (Edit Marks Record)';
+    $('m_save').textContent = 'Update';
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  function resultPdf(rec){
+    if(!window.html2canvas || !window.jspdf){ showStatus('PDF library load වී නැත (network අවශ්‍යයි)', true); return; }
+    const rows = (rec.subjects || []).map(s => `<tr>
+        <td style="border:1px solid #d9caca;padding:6px 9px;font-size:12.5px;">${escapeHtml(s.name)}</td>
+        <td style="border:1px solid #d9caca;padding:6px 9px;font-size:12.5px;text-align:center;">${(s.marks !== null && s.marks !== undefined && !isNaN(s.marks)) ? escapeHtml(s.marks) : '-'}</td>
+        <td style="border:1px solid #d9caca;padding:6px 9px;font-size:12.5px;text-align:center;">${escapeHtml(s.grade || '-')}</td>
+      </tr>`).join('');
+    const c = document.createElement('div');
+    c.style.cssText = "position:fixed;left:-99999px;top:0;background:#fff;padding:28px 30px;width:794px;box-sizing:border-box;font-family:'Noto Sans Sinhala',sans-serif;";
+    c.innerHTML = pdfHeaderHtml('ශිෂ්‍ය ප්‍රගති වාර්තාව (Student Progress Report)') + `
+      <div style="margin-top:10px;font-size:15px;font-weight:bold;">${escapeHtml(rec.childNameSinhala || '')} — ${escapeHtml(rec.admissionNo || '')}</div>
+      <div style="font-size:12.5px;color:#555;margin-bottom:10px;">ශ්‍රේණිය ${escapeHtml(rec.gradeNumber || '')} ${escapeHtml(rec.className || '')} &nbsp;|&nbsp; වර්ෂය ${escapeHtml(rec.year || '')} &nbsp;|&nbsp; ${escapeHtml(rec.term || '')}</div>
+      <table style="border-collapse:collapse;width:100%;margin-top:6px;">
+        <thead><tr>
+          <th style="border:1px solid #ccc;padding:7px 9px;background:#f6eeee;color:#6F092E;text-align:left;font-size:13px;">විෂය</th>
+          <th style="border:1px solid #ccc;padding:7px 9px;background:#f6eeee;color:#6F092E;text-align:center;font-size:13px;">ලකුණු</th>
+          <th style="border:1px solid #ccc;padding:7px 9px;background:#f6eeee;color:#6F092E;text-align:center;font-size:13px;">ශ්‍රේණිය</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <table style="border-collapse:collapse;width:100%;margin-top:10px;">
+        <tr><td style="border:1px solid #d9caca;padding:6px 9px;background:#f6eeee;color:#6F092E;font-size:12px;width:55%;">මුළු ලකුණු (Total)</td><td style="border:1px solid #d9caca;padding:6px 9px;font-size:13px;font-weight:bold;">${escapeHtml(rec.totalMarks)}</td></tr>
+        <tr><td style="border:1px solid #d9caca;padding:6px 9px;background:#f6eeee;color:#6F092E;font-size:12px;">සාමාන්‍යය (Average)</td><td style="border:1px solid #d9caca;padding:6px 9px;font-size:13px;font-weight:bold;">${escapeHtml(rec.average)}</td></tr>
+        <tr><td style="border:1px solid #d9caca;padding:6px 9px;background:#f6eeee;color:#6F092E;font-size:12px;">සමස්ත ශ්‍රේණිගත කිරීම (Overall Grade)</td><td style="border:1px solid #d9caca;padding:6px 9px;font-size:13px;font-weight:bold;">${escapeHtml(rec.grade)}</td></tr>
+        <tr><td style="border:1px solid #d9caca;padding:6px 9px;background:#f6eeee;color:#6F092E;font-size:12px;">පන්තියේ ස්ථානය (Class Position)</td><td style="border:1px solid #d9caca;padding:6px 9px;font-size:13px;font-weight:bold;">${escapeHtml(rec.rankText || '-')}</td></tr>
+      </table>
+      ${rec.remarks ? `<div style="margin-top:12px;font-size:12.5px;"><b>ගුරු අදහස් (Remarks):</b> ${escapeHtml(rec.remarks)}</div>` : ''}
+      <div style="display:flex;justify-content:space-between;margin-top:46px;font-size:12px;">
+        <div style="text-align:center;width:40%;border-top:1px solid #999;padding-top:4px;">පන්ති භාර ගුරු (Class Teacher)</div>
+        <div style="text-align:center;width:40%;border-top:1px solid #999;padding-top:4px;">විදුහල්පති (Principal)</div>
+      </div>`;
+    document.body.appendChild(c);
+    showStatus('PDF සකසමින්...');
+    html2canvas(c, {scale:2, backgroundColor:'#ffffff'}).then(canvas=>{
+      document.body.removeChild(c);
+      const pdf = new window.jspdf.jsPDF({orientation:'portrait', unit:'pt', format:'a4'});
+      const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight(), m = 24;
+      let iw = pw - m*2, ih = canvas.height * iw / canvas.width;
+      if(ih > ph - m*2){ const k = (ph - m*2) / ih; iw *= k; ih *= k; }
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', (pw - iw) / 2, m, iw, ih);
+      pdf.save(('Report_' + (rec.admissionNo || 'record') + '_' + (rec.year || '') + '_' + (rec.term || '')).replace(/[^\w.\-]+/g, '_') + '.pdf');
+      showStatus('PDF බාගත කරන ලදී');
+    }).catch(err=>{ if(c.parentNode) document.body.removeChild(c); showStatus('PDF දෝෂයක්: ' + err.message, true); });
+  }
+
+  $('m_tbody').addEventListener('click', async (e)=>{
+    const v = e.target.getAttribute('data-mview'), ed = e.target.getAttribute('data-medit'),
+          pd = e.target.getAttribute('data-mpdf'), del = e.target.getAttribute('data-mdel');
+    if(v){ const rec = marksRecords.find(r => r.id === v); if(rec) showDetail(rec, marksFieldIds, marksLabels, 'marks'); }
+    if(ed){ const rec = marksRecords.find(r => r.id === ed); if(rec) loadMarksIntoForm(rec); }
+    if(pd){ const rec = marksRecords.find(r => r.id === pd); if(rec) resultPdf(rec); }
+    if(del){
+      if(confirm('මෙම ලකුණු වාර්තාව මකා දමන්නද?')){
+        try{ await deleteDoc(doc(db, MARKS, del)); showStatus('මකා දමන ලදී'); }
+        catch(err){ showStatus('මකාදැමීමේ දෝෂයක්: ' + err.message, true); }
+      }
+    }
+  });
+
+  $('m_exportCsv').addEventListener('click', ()=> marksVisible.length ? csvDownload('marks.csv', marksFieldIds, marksLabels, marksVisible) : none());
+  $('m_exportXlsx').addEventListener('click', ()=> marksVisible.length ? excelDownload('marks.xlsx', marksFieldIds, marksLabels, marksVisible) : none());
+  $('m_exportPdf').addEventListener('click', ()=> marksVisible.length ? pdfDownload('ලකුණු ලේඛනය - ධර්මරාජ විද්‍යාලය', marksFieldIds, marksLabels, marksVisible) : none());
 })();
 
 // ---------- Conditional father/mother field groups ----------
