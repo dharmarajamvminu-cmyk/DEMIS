@@ -1213,6 +1213,31 @@ const studentsApi = wireCollection({
     return 'F';
   }
 
+  // Curriculum subject lists used to auto-fill the subject rows once a student is picked.
+  const SUBJECTS_G6_9 = [
+    'සිංහල භාෂාව හා සාහිත්‍යය', 'ඉංග්‍රීසි', 'දෙවන බස - දෙමළ', 'ගණිතය', 'විද්‍යාව',
+    'ඉතිහාසය', 'භූගෝල විද්‍යාව', 'සෞඛ්‍ය හා ශාරීරික අධ්‍යාපනය',
+    'තොරතුරු හා සන්නිවේදන තාක්ෂණය (ICT)', 'ප්‍රායෝගික තාක්ෂණික කුසලතා',
+    'සෞන්දර්ය අධ්‍යාපනය', 'ආගම', 'පුරවැසි අධ්‍යාපනය'
+  ];
+  const SUBJECTS_G10_11_CORE = ['මව් භාෂාව', 'ආගම', 'ඉංග්‍රීසි භාෂාව', 'ගණිතය', 'විද්‍යාව', 'ඉතිහාසය'];
+
+  // For grade 10/11, the 3 elective subjects come from the student's own record
+  // (පළමු/දෙවන/තෙවන විෂය කාණ්ඩය, already captured on the Students tab) when available.
+  function defaultSubjectsForStudent(studentRec){
+    const g = parseInt(studentRec && studentRec.gradeNumber, 10);
+    if(g >= 6 && g <= 9) return SUBJECTS_G6_9.slice();
+    if(g === 10 || g === 11){
+      const list = SUBJECTS_G10_11_CORE.slice();
+      ['subject1','subject2','subject3'].forEach(f=>{
+        const v = studentRec && studentRec[f];
+        if(v) list.push(v);
+      });
+      return list;
+    }
+    return null; // grades 1-5, 12-13: no fixed default list, use blank rows
+  }
+
   let marksRecords = [], marksVisible = [];
 
   function refreshStudentDatalist(){
@@ -1226,13 +1251,23 @@ const studentsApi = wireCollection({
     const v = $('m_studentPick').value.trim();
     const adm = v.split(' — ')[0].trim();
     const rec = studentsApi.getRecords().find(s => s.admissionNo === adm);
+    const prevId = $('m_studentId').value;
     if(rec){
+      const changedStudent = prevId !== rec.id;
       $('m_studentId').value = rec.id;
       $('m_admissionNo').value = rec.admissionNo;
       $('m_childNameSinhala').value = rec.childNameSinhala;
       $('m_gradeNumber').value = rec.gradeNumber;
       $('m_className').value = rec.className;
       $('m_pickedInfo').textContent = `තෝරාගත්: ${rec.childNameSinhala} — ${rec.admissionNo} (ශ්‍රේණිය ${rec.gradeNumber||''} ${rec.className||''})`;
+      // Only auto-fill subjects for a brand-new record, and only when the student actually changed
+      // (so re-selecting the same student doesn't wipe marks already typed in).
+      if(changedStudent && !$('m_docId').value){
+        $('m_subjectsBody').innerHTML = '';
+        const defaults = defaultSubjectsForStudent(rec);
+        if(defaults && defaults.length) defaults.forEach(name => addSubjectRow(name, ''));
+        else for(let i = 0; i < 5; i++) addSubjectRow();
+      }
     }else{
       $('m_studentId').value = '';
       $('m_pickedInfo').textContent = v ? 'සිසුවා හමු නොවීය — ලැයිස්තුවෙන් නිවැරදිව තෝරන්න' : '';
