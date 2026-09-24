@@ -305,7 +305,7 @@ html{-webkit-text-size-adjust:100%;}
         </div>
         <div class="count" id="t_count"></div>
         <div class="table-scroll">
-          <table><thead><tr><th>NIC</th><th>නම</th><th>තනතුර</th><th>දුරකථනය</th><th>බැංකුව</th><th>ක්‍රියා</th></tr></thead>
+          <table><thead><tr><th>NIC</th><th>නම</th><th>තනතුර</th><th>දුරකථනය</th><th>බැංකුව</th><th>සම්බන්ධ</th><th>ක්‍රියා</th></tr></thead>
           <tbody id="t_tbody"></tbody></table>
         </div>
         <div class="empty" id="t_empty" style="display:none;">තවම වාර්තා නොමැත</div>
@@ -490,7 +490,7 @@ html{-webkit-text-size-adjust:100%;}
         </div>
         <div class="count" id="s_count"></div>
         <div class="table-scroll">
-          <table><thead><tr><th><input type="checkbox" id="s_selAll"></th><th>Adm. No</th><th>නම</th><th>ශ්‍රේණිය/පන්තිය</th><th>පියාගේ දුරකථනය</th><th>ක්‍රියා</th></tr></thead>
+          <table><thead><tr><th><input type="checkbox" id="s_selAll"></th><th>Adm. No</th><th>නම</th><th>ශ්‍රේණිය/පන්තිය</th><th>පියාගේ දුරකථනය</th><th>සම්බන්ධ</th><th>ක්‍රියා</th></tr></thead>
           <tbody id="s_tbody"></tbody></table>
         </div>
         <div class="empty" id="s_empty" style="display:none;">තවම වාර්තා නොමැත</div>
@@ -716,6 +716,28 @@ function escapeHtml(str){
 }
 // Reuse the logo already embedded in the page (login card / header) instead of duplicating the image data.
 const SCHOOL_LOGO = (document.querySelector('.login-card img.logo') || document.querySelector('.header-brand img') || {}).src || '';
+
+// ---------- Call / WhatsApp quick-action helpers ----------
+// Normalizes a Sri Lankan phone number for a wa.me link (strips spaces/dashes, converts
+// a leading 0 to the 94 country code, leaves already-international numbers as-is).
+function waNumber(phone){
+  let digits = String(phone || '').replace(/[^0-9]/g, '');
+  if(!digits) return '';
+  if(digits.startsWith('0')) digits = '94' + digits.slice(1);
+  else if(!digits.startsWith('94')) digits = '94' + digits;
+  return digits;
+}
+// Returns a small Call + WhatsApp action-link pair. callPhone is used for the phone call link;
+// waPhone (falling back to callPhone) is used for the WhatsApp link. Returns '' if no number at all.
+function contactLinks(callPhone, waPhone){
+  const call = String(callPhone || '').trim();
+  const wa = String(waPhone || callPhone || '').trim();
+  if(!call && !wa) return '';
+  let html = '';
+  if(call) html += `<a class="btn-edit" href="tel:${escapeHtml(call)}" title="අමතන්න">📞</a>`;
+  if(wa) html += `<a class="btn-edit" href="https://wa.me/${waNumber(wa)}" target="_blank" rel="noopener" title="WhatsApp">💬</a>`;
+  return html;
+}
 
 function csvDownload(filename, fieldIds, labels, rows){
   const headerRow = fieldIds.map(f => labels[f] || f);
@@ -991,6 +1013,7 @@ const teachersApi = wireCollection({
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${escapeHtml(r.nic)}</td><td>${escapeHtml(r.fullName)}</td>
       <td>${escapeHtml(r.position)}</td><td>${escapeHtml(r.phone)}</td><td>${escapeHtml(r.bank)}</td>
+      <td>${contactLinks(r.phone, r.whatsapp)}</td>
       <td><button class="btn-edit" data-view="${r.id}">View</button><button class="btn-edit" data-edit="${r.id}">Edit</button><button class="btn-secondary" data-retire="${r.id}">Retire/Transfer</button><button class="btn-del" data-del="${r.id}">Delete</button></td>`;
     return tr;
   },
@@ -1101,8 +1124,10 @@ const studentsApi = wireCollection({
   exportPdfBtn: document.getElementById('s_exportPdf'),
   renderRow: (r)=>{
     const tr = document.createElement('tr');
+    const studentContactPhone = r.contactPhone || r.fatherPhone || r.motherPhone;
     tr.innerHTML = `<td><input type="checkbox" data-sel="${r.id}"></td><td>${escapeHtml(r.admissionNo)}</td><td>${escapeHtml(r.childNameSinhala)}</td>
       <td>${escapeHtml(r.gradeNumber)} ${escapeHtml(r.className)}</td><td>${escapeHtml(r.fatherPhone)}</td>
+      <td>${contactLinks(studentContactPhone, studentContactPhone)}</td>
       <td><button class="btn-edit" data-view="${r.id}">View</button><button class="btn-edit" data-edit="${r.id}">Edit</button><button class="btn-secondary" data-transfer="${r.id}">Transfer</button><button class="btn-del" data-del="${r.id}">Delete</button></td>`;
     return tr;
   }
@@ -1259,7 +1284,11 @@ const studentsApi = wireCollection({
     const name = rec.childNameSinhala || rec.fullName || '';
     const idNo = rec.admissionNo || rec.nic || '';
     $('d_title').textContent = name + (idNo ? ' — ' + idNo : '');
-    $('d_body').innerHTML = fieldIds.map(f => `<div class="dl"><span>${escapeHtml(labels[f] || f)}</span><b>${escapeHtml(fmt(rec[f]))}</b></div>`).join('');
+    const PHONE_FIELDS = new Set(['phone','whatsapp','fatherPhone','motherPhone','contactPhone']);
+    $('d_body').innerHTML = fieldIds.map(f => {
+      const links = PHONE_FIELDS.has(f) && rec[f] ? ` ${contactLinks(rec[f], f === 'whatsapp' ? rec[f] : (rec.whatsapp || rec[f]))}` : '';
+      return `<div class="dl"><span>${escapeHtml(labels[f] || f)}</span><b>${escapeHtml(fmt(rec[f]))}${links}</b></div>`;
+    }).join('');
     $('detailModal').classList.add('show');
   }
   $('d_close').addEventListener('click', ()=> $('detailModal').classList.remove('show'));
@@ -1527,6 +1556,7 @@ const studentsApi = wireCollection({
     'සෞන්දර්ය අධ්‍යාපනය', 'ආගම', 'පුරවැසි අධ්‍යාපනය'
   ];
   const SUBJECTS_G10_11_CORE = ['මව් භාෂාව', 'ආගම', 'ඉංග්‍රීසි භාෂාව', 'ගණිතය', 'විද්‍යාව', 'ඉතිහාසය'];
+  const SUBJECTS_G12_13 = ['සිංහල', 'බෞද්ධ ශිෂ්ටාචාරය', 'ජන සන්නිවේදනය', 'භූගෝල විද්‍යාව', 'ආර්ථීක විද්‍යාව', 'General English', 'GIT'];
 
   // Category subjects (aesthetic education for 6-9, and the 3 elective categories for 10-11) each
   // have a fixed set of sub-subjects. When a row's name matches one of these keys, addSubjectRow
@@ -1561,7 +1591,10 @@ const studentsApi = wireCollection({
     if(g >= 1 && g <= 5){
       return ['මව්බස', 'පරිසරය', 'ගණිතය', 'බුද්ධ ධර්මය', 'ඉංග්‍රීසි', 'දෙමළ'].map(s => ({ name: s, sub: '' }));
     }
-    return null; // grades 12-13: no fixed default list, use blank rows
+    if(g === 12 || g === 13){
+      return SUBJECTS_G12_13.map(s => ({ name: s, sub: '' }));
+    }
+    return null;
   }
 
   let marksRecords = [], marksVisible = [];
