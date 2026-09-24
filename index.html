@@ -230,7 +230,7 @@ html{-webkit-text-size-adjust:100%;}
   </header>
 
   <nav class="tabs">
-    <button data-tab="teachers" class="active">ගුරු දත්ත ගබඩාව (Teachers)</button>
+    <button data-tab="teachers" class="active">අධ්‍යයන අනධ්‍යන කාර්ය මණ්ඩල තොරතුරු (Staff)</button>
     <button data-tab="students">සිසු ලේඛනය (Students)</button>
     <button data-tab="marks">ලකුණු හා ප්‍රතිඵල කළමනාකරණය (Marks &amp; Results)</button>
     <button data-tab="analysis">විෂය අනුව විශ්ලේෂණය (Subject Analysis)</button>
@@ -269,9 +269,15 @@ html{-webkit-text-size-adjust:100%;}
             <div class="f field"><label>අධ්‍යාපන සුදුසුකම්</label><input id="t_eduQual"></div>
             <div class="f field"><label>වෘත්තීය සුදුසුකම්</label><input id="t_profQual"></div>
             <div class="f field"><label>ලේඛන අංකය (Reg No.)</label><input id="t_regNo"></div>
-            <div class="f field"><label>වැන්දඹු/අනාථ අංකය</label><input id="t_worpNo"></div>
-            <div class="f field span2"><label>මීට පෙර සේවය කළ පාසල</label><input id="t_prevSchool"></div>
-            <div class="f field"><label>එම පාසලේ සේවය කළ කාලය</label><input id="t_prevPeriod"></div>
+            <div class="f field"><label>වැන්දඹු අනත්දරු අංකය</label><input id="t_worpNo"></div>
+            <div class="f field"><label>උගන්වන ප්‍රධාන විෂය</label><input id="t_mainSubject"></div>
+            <div class="f field span2"><label>ප්‍රධාන විෂයට අමතරව ඉගැන්වීමට හැකි වෙනත් විෂයන්</label><input id="t_otherSubjects"></div>
+            <div class="f field span2">
+              <label>මීට පෙර ඉගැන්වූ පාසල් හා සේවා කාලය</label>
+              <input type="hidden" id="t_prevSchoolsText">
+              <div id="t_prevSchoolsBody"></div>
+              <button type="button" class="btn-secondary" id="t_addPrevSchool" style="margin:6px 0 0;">+ පාසලක් එකතු කරන්න (Add School)</button>
+            </div>
             <div class="f field"><label>ගිණුම් අංකය (Salary Acct.)</label><input id="t_acctNo"></div>
             <div class="f field"><label>බැංකුව</label>
               <select id="t_bank"><option value="">-- තෝරන්න --</option>
@@ -842,6 +848,7 @@ function wireCollection(cfg){
     document.getElementById(prefix + '_docId').value = '';
     formTitle.textContent = defaultTitle;
     saveBtn.textContent = 'Save';
+    if(cfg.onReset) cfg.onReset();
   }
 
   function render(filter){
@@ -898,6 +905,7 @@ function wireCollection(cfg){
         if(el.type === 'checkbox') el.checked = !!rec[fid];
         else el.value = rec[fid] || '';
       });
+      if(cfg.onEdit) cfg.onEdit(rec);
       formTitle.textContent = editTitle;
       saveBtn.textContent = 'Update';
       window.scrollTo({top:0, behavior:'smooth'});
@@ -929,8 +937,8 @@ function wireCollection(cfg){
 
 // ---------- Teachers ----------
 const teacherFieldIds = ['nic','fullName','address','dob','gender','phone','whatsapp','position','grade',
-  'firstAppointDate','schoolJoinDate','eduQual','profQual','regNo','worpNo','prevSchool',
-  'prevPeriod','acctNo','bank','branch'];
+  'firstAppointDate','schoolJoinDate','eduQual','profQual','regNo','worpNo','mainSubject','otherSubjects',
+  'prevSchoolsText','acctNo','bank','branch'];
 
 const teacherLabels = {
   nic:'ජාතික හැඳුනුම්පත් අංකය (NIC)', fullName:'සම්පූර්ණ නම (Full Name)', address:'ලිපිනය (Address)',
@@ -938,7 +946,9 @@ const teacherLabels = {
   whatsapp:'WhatsApp අංකය', position:'තනතුර (Position)', grade:'ශ්‍රේණිය (Grade)',
   firstAppointDate:'මුල්පත්වීම් දිනය', schoolJoinDate:'විද්‍යාලයට පත් වූ දිනය',
   eduQual:'අධ්‍යාපන සුදුසුකම්', profQual:'වෘත්තීය සුදුසුකම්', regNo:'ලේඛන අංකය (Reg No.)',
-  worpNo:'වැන්දඹු/අනාථ අංකය', prevSchool:'මීට පෙර සේවය කළ පාසල', prevPeriod:'එම පාසලේ සේවය කළ කාලය',
+  worpNo:'වැන්දඹු අනත්දරු අංකය', mainSubject:'උගන්වන ප්‍රධාන විෂය',
+  otherSubjects:'ප්‍රධාන විෂයට අමතරව ඉගැන්වීමට හැකි වෙනත් විෂයන්',
+  prevSchoolsText:'මීට පෙර ඉගැන්වූ පාසල් හා සේවා කාලය',
   acctNo:'ගිණුම් අංකය (Salary Acct.)', bank:'බැංකුව', branch:'ශාඛාව (Branch)'
 };
 
@@ -966,8 +976,54 @@ const teachersApi = wireCollection({
       <td>${escapeHtml(r.position)}</td><td>${escapeHtml(r.phone)}</td><td>${escapeHtml(r.bank)}</td>
       <td><button class="btn-edit" data-view="${r.id}">View</button><button class="btn-edit" data-edit="${r.id}">Edit</button><button class="btn-secondary" data-retire="${r.id}">Retire/Transfer</button><button class="btn-del" data-del="${r.id}">Delete</button></td>`;
     return tr;
-  }
+  },
+  onReset: ()=>{ resetPrevSchoolsUI(); },
+  onEdit: (rec)=>{ populatePrevSchoolsUI(rec.prevSchoolsText || ''); }
 });
+
+// ---------- Teachers: repeatable "previous schools & service period" rows ----------
+function addPrevSchoolRow(school, period){
+  const row = document.createElement('div');
+  row.className = 'subject-row';
+  row.innerHTML = `<input class="ps-school" placeholder="පාසලේ නම (School Name)" style="flex:2 1 220px;">
+    <input class="ps-period" placeholder="සේවය කළ කාලය (e.g. 2015 - 2019)" style="flex:1 1 160px;">
+    <button type="button" class="btn-del">✕</button>`;
+  row.querySelector('.ps-school').value = school || '';
+  row.querySelector('.ps-period').value = period || '';
+  row.querySelectorAll('input').forEach(inp => inp.addEventListener('input', syncPrevSchoolsText));
+  row.querySelector('.btn-del').addEventListener('click', ()=>{ row.remove(); syncPrevSchoolsText(); });
+  document.getElementById('t_prevSchoolsBody').appendChild(row);
+}
+function syncPrevSchoolsText(){
+  const rows = [...document.querySelectorAll('#t_prevSchoolsBody .subject-row')];
+  const text = rows.map(row=>{
+    const school = row.querySelector('.ps-school').value.trim();
+    const period = row.querySelector('.ps-period').value.trim();
+    if(!school) return '';
+    return period ? `${school} (${period})` : school;
+  }).filter(Boolean).join('; ');
+  document.getElementById('t_prevSchoolsText').value = text;
+}
+function resetPrevSchoolsUI(){
+  document.getElementById('t_prevSchoolsBody').innerHTML = '';
+  addPrevSchoolRow();
+  syncPrevSchoolsText();
+}
+function populatePrevSchoolsUI(text){
+  document.getElementById('t_prevSchoolsBody').innerHTML = '';
+  const entries = text.split(';').map(s => s.trim()).filter(Boolean);
+  if(!entries.length){ addPrevSchoolRow(); }
+  else{
+    entries.forEach(entry=>{
+      const m = entry.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+      if(m) addPrevSchoolRow(m[1].trim(), m[2].trim());
+      else addPrevSchoolRow(entry, '');
+    });
+  }
+  syncPrevSchoolsText();
+}
+document.getElementById('t_addPrevSchool').addEventListener('click', ()=> addPrevSchoolRow());
+resetPrevSchoolsUI();
 
 // ---------- Students ----------
 const studentFieldIds = ['admissionNo','childNameSinhala','childNameEnglish','initialsNameSinhala',
@@ -1244,13 +1300,13 @@ const studentsApi = wireCollection({
     if(!window.html2canvas || !window.jspdf){ showStatus('PDF library load වී නැත (network අවශ්‍යයි)', true); return; }
     const groups = [
       ['පෞද්ගලික තොරතුරු', ['nic','fullName','dob','gender','phone','whatsapp','address']],
-      ['සේවා තොරතුරු', ['position','grade','firstAppointDate','schoolJoinDate','eduQual','profQual','regNo','worpNo','prevSchool','prevPeriod']],
+      ['සේවා තොරතුරු', ['position','grade','firstAppointDate','schoolJoinDate','eduQual','profQual','regNo','worpNo','mainSubject','otherSubjects','prevSchoolsText']],
       ['බැංකු තොරතුරු', ['acctNo','bank','branch']]
     ];
     const used = new Set(groups.flatMap(g => g[1]));
     const rest = fieldIds.filter(f => !used.has(f));
     if(rest.length) groups.push(['සේවා තත්ත්වය / අනෙකුත්', rest]);
-    const wide = new Set(['address','statusNote']);
+    const wide = new Set(['address','statusNote','otherSubjects','prevSchoolsText']);
     const lab = 'border:1px solid #d9caca;padding:5px 8px;background:#f6eeee;color:#6F092E;font-size:11px;width:19%;vertical-align:top;';
     const val = 'border:1px solid #d9caca;padding:5px 8px;font-size:12px;width:31%;vertical-align:top;word-break:break-word;';
     const cell = f => `<td style="${lab}">${escapeHtml(labels[f] || f)}</td><td style="${val}">${escapeHtml(fmt(rec[f]))}</td>`;
