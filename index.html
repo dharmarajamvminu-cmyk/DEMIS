@@ -148,7 +148,8 @@ th{background:#f6eeee;color:var(--maroon-dark);position:sticky;top:0;}
   <nav class="tabs">
     <button data-tab="teachers" class="active">ගුරු දත්ත ගබඩාව (Teachers)</button>
     <button data-tab="students">සිසු ලේඛනය (Students)</button>
-    <button data-tab="archive">හැර ගිය / මාරු වූ (Archive)</button>
+    <button data-tab="archive">හැර ගිය / මාරු වූ සිසුන් (Student Archive)</button>
+    <button data-tab="staffArchive">විශ්‍රාම ගිය / මාරු වූ කාර්ය මණ්ඩලය (Staff Archive)</button>
   </nav>
 
   <div class="wrap">
@@ -212,6 +213,28 @@ th{background:#f6eeee;color:var(--maroon-dark);position:sticky;top:0;}
           <tbody id="t_tbody"></tbody></table>
         </div>
         <div class="empty" id="t_empty" style="display:none;">තවම වාර්තා නොමැත</div>
+      </div>
+    </section>
+
+    <!-- ---------- STAFF ARCHIVE TAB (retired / transferred teachers) ---------- -->
+    <section class="tabpanel" id="tab-staffArchive">
+      <div class="card">
+        <div class="toolbar">
+          <h2 style="margin:0;">විශ්‍රාම ගිය / මාරු වූ ගුරු මණ්ඩලය</h2>
+          <div class="search"><input id="ta_search" placeholder="නම හෝ NIC අංකයෙන් සොයන්න..."></div>
+          <select id="ta_status" style="width:auto;"><option value="">සියල්ල</option><option value="Retired">විශ්‍රාම ගිය (Retired)</option><option value="Transferred">මාරු වූ (Transferred)</option></select>
+          <div class="export-group">
+            <button class="btn-export csv" id="ta_exportCsv">CSV</button>
+            <button class="btn-export xlsx" id="ta_exportXlsx">Excel</button>
+            <button class="btn-export pdf" id="ta_exportPdf">PDF</button>
+          </div>
+        </div>
+        <div class="count" id="ta_count"></div>
+        <div class="table-scroll">
+          <table><thead><tr><th>NIC</th><th>නම</th><th>තනතුර</th><th>තත්ත්වය</th><th>දිනය</th><th>සටහන</th><th>ක්‍රියා</th></tr></thead>
+          <tbody id="ta_tbody"></tbody></table>
+        </div>
+        <div class="empty" id="ta_empty" style="display:none;">තවම වාර්තා නොමැත</div>
       </div>
     </section>
 
@@ -399,6 +422,9 @@ function escapeHtml(str){
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
+// Reuse the logo already embedded in the page (login card / header) instead of duplicating the image data.
+const SCHOOL_LOGO = (document.querySelector('.login-card img.logo') || document.querySelector('.header-brand img') || {}).src || '';
+
 function csvDownload(filename, fieldIds, labels, rows){
   const headerRow = fieldIds.map(f => labels[f] || f);
   const csv = '\uFEFF' + headerRow.join(',') + '\n' + rows.map(r =>
@@ -431,7 +457,10 @@ function pdfDownload(title, fieldIds, labels, rows){
   const th = f => `<th style="border:1px solid #ccc;padding:7px 9px;background:#f6eeee;color:#6F092E;text-align:left;font-size:13px;white-space:nowrap;">${escapeHtml(labels[f]||f)}</th>`;
   const td = (r,f) => `<td style="border:1px solid #ccc;padding:6px 9px;font-size:12.5px;">${escapeHtml(r[f]||'')}</td>`;
   container.innerHTML = `
-    <h2 style="color:#6F092E;font-family:'Noto Serif Sinhala',serif;margin:0 0 14px;">${escapeHtml(title)}</h2>
+    <div style="display:flex;align-items:center;gap:14px;margin:0 0 14px;">
+      ${SCHOOL_LOGO ? `<img src="${SCHOOL_LOGO}" style="height:54px;width:54px;object-fit:contain;flex-shrink:0;">` : ''}
+      <h2 style="color:#6F092E;font-family:'Noto Serif Sinhala',serif;margin:0;">${escapeHtml(title)}</h2>
+    </div>
     <table style="border-collapse:collapse;width:100%;">
       <thead><tr>${fieldIds.map(th).join('')}</tr></thead>
       <tbody>${rows.map(r => `<tr>${fieldIds.map(f=>td(r,f)).join('')}</tr>`).join('')}</tbody>
@@ -631,7 +660,7 @@ const teacherLabels = {
   acctNo:'ගිණුම් අංකය (Salary Acct.)', bank:'බැංකුව', branch:'ශාඛාව (Branch)'
 };
 
-wireCollection({
+const teachersApi = wireCollection({
   colName: 'teachers', fieldIds: teacherFieldIds, prefix: 't', sortField: 'fullName',
   searchFields: ['fullName','nic'],
   formEl: document.getElementById('teacherForm'),
@@ -653,7 +682,7 @@ wireCollection({
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${escapeHtml(r.nic)}</td><td>${escapeHtml(r.fullName)}</td>
       <td>${escapeHtml(r.position)}</td><td>${escapeHtml(r.phone)}</td><td>${escapeHtml(r.bank)}</td>
-      <td><button class="btn-edit" data-edit="${r.id}">Edit</button><button class="btn-del" data-del="${r.id}">Delete</button></td>`;
+      <td><button class="btn-edit" data-view="${r.id}">View</button><button class="btn-edit" data-edit="${r.id}">Edit</button><button class="btn-secondary" data-retire="${r.id}">Retire/Transfer</button><button class="btn-del" data-del="${r.id}">Delete</button></td>`;
     return tr;
   }
 });
@@ -814,9 +843,18 @@ const studentsApi = wireCollection({
   // detail modal + individual PDF
   let cur = null;
   function fmt(v){ return v === true ? '✔' : (v === false || v === undefined || v === null || v === '') ? '—' : v; }
-  function showDetail(rec, fieldIds, labels){
-    cur = { rec, fieldIds, labels };
-    $('d_title').textContent = (rec.childNameSinhala || '') + (rec.admissionNo ? ' — ' + rec.admissionNo : '');
+  function pdfHeaderHtml(subtitle){
+    return `<div style="text-align:center;border-bottom:3px solid #6F092E;padding-bottom:8px;">
+      ${SCHOOL_LOGO ? `<img src="${SCHOOL_LOGO}" style="height:56px;width:56px;object-fit:contain;display:block;margin:0 auto 6px;">` : ''}
+      <div style="color:#6F092E;font-size:22px;font-weight:bold;">ධර්මරාජ විද්‍යාලය</div>
+      <div style="font-size:14px;margin-top:2px;">${escapeHtml(subtitle)}</div>
+    </div>`;
+  }
+  function showDetail(rec, fieldIds, labels, kind){
+    cur = { rec, fieldIds, labels, kind: kind || 'student' };
+    const name = rec.childNameSinhala || rec.fullName || '';
+    const idNo = rec.admissionNo || rec.nic || '';
+    $('d_title').textContent = name + (idNo ? ' — ' + idNo : '');
     $('d_body').innerHTML = fieldIds.map(f => `<div class="dl"><span>${escapeHtml(labels[f] || f)}</span><b>${escapeHtml(fmt(rec[f]))}</b></div>`).join('');
     $('detailModal').classList.add('show');
   }
@@ -856,8 +894,8 @@ const studentsApi = wireCollection({
     });
     const c = document.createElement('div');
     c.style.cssText = "position:fixed;left:-99999px;top:0;background:#fff;padding:28px 30px;width:794px;box-sizing:border-box;font-family:'Noto Sans Sinhala',sans-serif;";
-    c.innerHTML = `<div style="text-align:center;border-bottom:3px solid #6F092E;padding-bottom:8px;"><div style="color:#6F092E;font-size:22px;font-weight:bold;">ධර්මරාජ විද්‍යාලය</div><div style="font-size:14px;margin-top:2px;">සිසු තොරතුරු (Student Details)</div></div>
-      <div style="margin-top:8px;font-size:15px;font-weight:bold;">${escapeHtml(rec.childNameSinhala || '')} ${rec.gradeNumber ? ' — ශ්‍රේණිය ' + escapeHtml(rec.gradeNumber) + ' ' + escapeHtml(rec.className || '') : ''}</div>${html}`;
+    c.innerHTML = pdfHeaderHtml('සිසු තොරතුරු (Student Details)') +
+      `<div style="margin-top:8px;font-size:15px;font-weight:bold;">${escapeHtml(rec.childNameSinhala || '')} ${rec.gradeNumber ? ' — ශ්‍රේණිය ' + escapeHtml(rec.gradeNumber) + ' ' + escapeHtml(rec.className || '') : ''}</div>${html}`;
     document.body.appendChild(c);
     showStatus('PDF සකසමින්...');
     html2canvas(c, {scale:2, backgroundColor:'#ffffff'}).then(canvas=>{
@@ -871,7 +909,58 @@ const studentsApi = wireCollection({
       showStatus('PDF බාගත කරන ලදී');
     }).catch(err=>{ if(c.parentNode) document.body.removeChild(c); showStatus('PDF දෝෂයක්: ' + err.message, true); });
   }
-  $('d_pdf').addEventListener('click', ()=>{ if(cur) recordPdf(cur.rec, cur.fieldIds, cur.labels); });
+  function teacherPdf(rec, fieldIds, labels){
+    if(!window.html2canvas || !window.jspdf){ showStatus('PDF library load වී නැත (network අවශ්‍යයි)', true); return; }
+    const groups = [
+      ['පෞද්ගලික තොරතුරු', ['nic','fullName','dob','gender','phone','whatsapp','address']],
+      ['සේවා තොරතුරු', ['position','grade','firstAppointDate','schoolJoinDate','eduQual','profQual','regNo','worpNo','prevSchool','prevPeriod']],
+      ['බැංකු තොරතුරු', ['acctNo','bank','branch']]
+    ];
+    const used = new Set(groups.flatMap(g => g[1]));
+    const rest = fieldIds.filter(f => !used.has(f));
+    if(rest.length) groups.push(['සේවා තත්ත්වය / අනෙකුත්', rest]);
+    const wide = new Set(['address','statusNote']);
+    const lab = 'border:1px solid #d9caca;padding:5px 8px;background:#f6eeee;color:#6F092E;font-size:11px;width:19%;vertical-align:top;';
+    const val = 'border:1px solid #d9caca;padding:5px 8px;font-size:12px;width:31%;vertical-align:top;word-break:break-word;';
+    const cell = f => `<td style="${lab}">${escapeHtml(labels[f] || f)}</td><td style="${val}">${escapeHtml(fmt(rec[f]))}</td>`;
+    let html = '';
+    groups.forEach(([title, ids])=>{
+      ids = ids.filter(f => fieldIds.includes(f));
+      if(!ids.length) return;
+      let rows = '', pending = null;
+      ids.forEach(f=>{
+        if(wide.has(f)){
+          if(pending){ rows += `<tr>${cell(pending)}<td colspan="2" style="${val}"></td></tr>`; pending = null; }
+          rows += `<tr><td style="${lab}">${escapeHtml(labels[f] || f)}</td><td colspan="3" style="${val}width:81%;">${escapeHtml(fmt(rec[f]))}</td></tr>`;
+        }else if(pending){ rows += `<tr>${cell(pending)}${cell(f)}</tr>`; pending = null; }
+        else pending = f;
+      });
+      if(pending) rows += `<tr>${cell(pending)}<td colspan="2" style="${val}"></td></tr>`;
+      html += `<div style="margin:12px 0 4px;font-weight:bold;color:#6F092E;font-size:13px;border-bottom:2px solid #E8B400;padding-bottom:2px;">${title}</div><table style="border-collapse:collapse;width:100%;table-layout:fixed;">${rows}</table>`;
+    });
+    const c = document.createElement('div');
+    c.style.cssText = "position:fixed;left:-99999px;top:0;background:#fff;padding:28px 30px;width:794px;box-sizing:border-box;font-family:'Noto Sans Sinhala',sans-serif;";
+    c.innerHTML = pdfHeaderHtml('ගුරු / කාර්ය මණ්ඩල තොරතුරු (Staff Details)') +
+      `<div style="margin-top:8px;font-size:15px;font-weight:bold;">${escapeHtml(rec.fullName || '')} ${rec.position ? ' — ' + escapeHtml(rec.position) : ''}</div>${html}`;
+    document.body.appendChild(c);
+    showStatus('PDF සකසමින්...');
+    html2canvas(c, {scale:2, backgroundColor:'#ffffff'}).then(canvas=>{
+      document.body.removeChild(c);
+      const pdf = new window.jspdf.jsPDF({orientation:'portrait', unit:'pt', format:'a4'});
+      const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight(), m = 24;
+      let iw = pw - m*2, ih = canvas.height * iw / canvas.width;
+      if(ih > ph - m*2){ const k = (ph - m*2) / ih; iw *= k; ih *= k; }   // always fit on one page
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', (pw - iw) / 2, m, iw, ih);
+      pdf.save(('Teacher_' + (rec.nic || 'record') + '.pdf').replace(/[^\w.\-]+/g, '_'));
+      showStatus('PDF බාගත කරන ලදී');
+    }).catch(err=>{ if(c.parentNode) document.body.removeChild(c); showStatus('PDF දෝෂයක්: ' + err.message, true); });
+  }
+
+  $('d_pdf').addEventListener('click', ()=>{
+    if(!cur) return;
+    if(cur.kind === 'teacher') teacherPdf(cur.rec, cur.fieldIds, cur.labels);
+    else recordPdf(cur.rec, cur.fieldIds, cur.labels);
+  });
 
   // row buttons on the active students table
   $('s_tbody').addEventListener('click', async (e)=>{
@@ -932,6 +1021,79 @@ const studentsApi = wireCollection({
   $('a_exportCsv').addEventListener('click', ()=> archVisible.length ? csvDownload('student_archive.csv', archiveFieldIds, archiveLabels, archVisible) : none());
   $('a_exportXlsx').addEventListener('click', ()=> archVisible.length ? excelDownload('student_archive.xlsx', archiveFieldIds, archiveLabels, archVisible) : none());
   $('a_exportPdf').addEventListener('click', ()=> archVisible.length ? pdfDownload('හැර ගිය / මාරු වූ සිසුන් - ධර්මරාජ විද්‍යාලය', archiveFieldIds, archiveLabels, archVisible) : none());
+
+  // ================= Staff (teacher) retire / transfer -> separate database =================
+  const STAFF_ARCHIVE = 'staff_archive';
+  const archiveTeacherFieldIds = teacherFieldIds.concat(['status','statusDate','statusNote']);
+  const archiveTeacherLabels = Object.assign({}, teacherLabels, {status:'තත්ත්වය (Status)', statusDate:'දිනය (Date)', statusNote:'සටහන (Note)'});
+  const staffStatusText = st => st === 'Retired' ? 'විශ්‍රාම ගියා' : 'මාරු වුණා';
+
+  async function moveStaffToArchive(rec, status, note, date){
+    const { id, ...data } = rec;
+    await addDoc(collection(db, STAFF_ARCHIVE), { ...data, status, statusNote: note || '', statusDate: date || today(), archivedFromId: id });
+    await deleteDoc(doc(db, 'teachers', id));
+  }
+
+  // View / Retire-Transfer buttons on the active teachers table
+  $('t_tbody').addEventListener('click', async (e)=>{
+    const viewId = e.target.getAttribute('data-view'), retId = e.target.getAttribute('data-retire');
+    if(viewId){
+      const rec = teachersApi.getRecords().find(r => r.id === viewId);
+      if(rec) showDetail(rec, teacherFieldIds, teacherLabels, 'teacher');
+    }
+    if(retId){
+      const rec = teachersApi.getRecords().find(r => r.id === retId);
+      if(!rec) return;
+      const statusIn = prompt('තත්ත්වය තෝරන්න — "Retired" (විශ්‍රාම) හෝ "Transferred" (මාරු) ලෙස ටයිප් කරන්න:', 'Retired');
+      if(statusIn === null) return;
+      const status = /^t/i.test(statusIn.trim()) ? 'Transferred' : 'Retired';
+      const note = prompt(status === 'Transferred' ? 'මාරු වන පාසල / හේතුව (School / reason):' : 'සටහන (Note) — විකල්පයි:', '') || '';
+      const date = prompt('දිනය (YYYY-MM-DD):', today());
+      if(date === null) return;
+      if(!confirm(`${rec.fullName} — ${status === 'Retired' ? 'විශ්‍රාම ගිය' : 'මාරු වූ'} ලෙස වෙනත් දත්ත ගබඩාවකට (Staff Archive) මාරු කරන්නද? මෙය ගුරු ලේඛනයෙන් ඉවත් වේ.`)) return;
+      try{ await moveStaffToArchive(rec, status, note, date); showStatus('Staff Archive වෙත මාරු කරන ලදී'); }
+      catch(err){ showStatus('දෝෂයක්: ' + err.message, true); }
+    }
+  });
+
+  // Staff archive tab
+  let staffArch = [], staffArchVisible = [];
+  function renderStaffArchive(){
+    const q = $('ta_search').value.trim().toLowerCase(), st = $('ta_status').value;
+    staffArchVisible = staffArch.filter(r => (!st || r.status === st) &&
+      (!q || ['fullName','nic'].some(f => (r[f] || '').toLowerCase().includes(q))));
+    $('ta_tbody').innerHTML = '';
+    $('ta_empty').style.display = staffArchVisible.length ? 'none' : 'block';
+    staffArchVisible.forEach(r=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${escapeHtml(r.nic)}</td><td>${escapeHtml(r.fullName)}</td><td>${escapeHtml(r.position)}</td>
+        <td>${staffStatusText(r.status)}</td><td>${escapeHtml(r.statusDate)}</td><td>${escapeHtml(r.statusNote)}</td>
+        <td><button class="btn-edit" data-taview="${r.id}">View</button><button class="btn-secondary" data-tarestore="${r.id}">Restore</button></td>`;
+      $('ta_tbody').appendChild(tr);
+    });
+    $('ta_count').textContent = `මුළු වාර්තා ගණන: ${staffArch.length}` + (staffArchVisible.length !== staffArch.length ? ` — ${staffArchVisible.length} matching` : '');
+  }
+  onSnapshot(query(collection(db, STAFF_ARCHIVE), orderBy('fullName')), snap=>{
+    staffArch = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderStaffArchive();
+  }, err => showStatus('Staff Archive දත්ත දෝෂයක්: ' + err.message, true));
+  $('ta_search').addEventListener('input', renderStaffArchive);
+  $('ta_status').addEventListener('change', renderStaffArchive);
+
+  $('ta_tbody').addEventListener('click', async (e)=>{
+    const v = e.target.getAttribute('data-taview'), rs = e.target.getAttribute('data-tarestore');
+    if(v){ const rec = staffArch.find(r => r.id === v); if(rec) showDetail(rec, archiveTeacherFieldIds, archiveTeacherLabels, 'teacher'); }
+    if(rs){
+      const rec = staffArch.find(r => r.id === rs);
+      if(!rec || !confirm(`${rec.fullName} නැවත ගුරු ලේඛනයට එක් කරන්නද?`)) return;
+      const { id, status, statusDate, statusNote, archivedFromId, ...data } = rec;
+      try{ await addDoc(collection(db, 'teachers'), data); await deleteDoc(doc(db, STAFF_ARCHIVE, id)); showStatus('නැවත එක් කරන ලදී'); }
+      catch(err){ showStatus('දෝෂයක්: ' + err.message, true); }
+    }
+  });
+
+  $('ta_exportCsv').addEventListener('click', ()=> staffArchVisible.length ? csvDownload('staff_archive.csv', archiveTeacherFieldIds, archiveTeacherLabels, staffArchVisible) : none());
+  $('ta_exportXlsx').addEventListener('click', ()=> staffArchVisible.length ? excelDownload('staff_archive.xlsx', archiveTeacherFieldIds, archiveTeacherLabels, staffArchVisible) : none());
+  $('ta_exportPdf').addEventListener('click', ()=> staffArchVisible.length ? pdfDownload('විශ්‍රාම ගිය / මාරු වූ කාර්ය මණ්ඩලය - ධර්මරාජ විද්‍යාලය', archiveTeacherFieldIds, archiveTeacherLabels, staffArchVisible) : none());
 })();
 
 // ---------- Conditional father/mother field groups ----------
