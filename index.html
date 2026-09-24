@@ -1320,19 +1320,33 @@ const studentsApi = wireCollection({
   ];
   const SUBJECTS_G10_11_CORE = ['මව් භාෂාව', 'ආගම', 'ඉංග්‍රීසි භාෂාව', 'ගණිතය', 'විද්‍යාව', 'ඉතිහාසය'];
 
-  // For grade 10/11, the 3 elective subjects come from the student's own record
-  // (පළමු/දෙවන/තෙවන විෂය කාණ්ඩය, already captured on the Students tab) when available.
+  // Category subjects (aesthetic education for 6-9, and the 3 elective categories for 10-11) each
+  // have a fixed set of sub-subjects. When a row's name matches one of these keys, addSubjectRow
+  // shows a sub-subject dropdown next to the name so the specific subject can be picked.
+  const SUBJECT_CATEGORY_OPTIONS = {
+    'සෞන්දර්ය අධ්‍යාපනය': ['පෙරදිග සංගීතය', 'නර්තනය', 'චිත්‍ර', 'නාට්‍ය හා රංග කලාව', 'අපරදිග සංගීතය'],
+    'පළමු කාණ්ඩය': ['ව්‍යාපාර හා ගිණුම්කරණ අධ්‍යයනය', 'භූගෝල විද්‍යාව', 'පුරවැසි අධ්‍යාපනය', 'ව්‍යවසායකත්ව අධ්‍යයනය',
+      'දෙවන ජාතික භාෂාව – සිංහල / දෙමළ', 'විදේශ භාෂා – ප්‍රංශ, ජර්මන්, ජපන්, හින්දි, අරාබි ආදිය'],
+    'දෙවන කාණ්ඩය': ['චිත්‍ර කලාව', 'නැටුම්', 'සංගීතය – පෙරදිග / බටහිර', 'නාට්‍ය හා රංග කලාව',
+      'සාහිත්‍ය රසවින්දනය – සිංහල / දෙමළ / ඉංග්‍රීසි / අරාබි'],
+    'තෙවන කාණ්ඩය': ['තොරතුරු හා සන්නිවේදන තාක්ෂණය (ICT)', 'සෞඛ්‍ය හා ශාරීරික අධ්‍යාපනය', 'කෘෂිකර්ම හා ආහාර තාක්ෂණය',
+      'ගෘහ ආර්ථික විද්‍යාව', 'සන්නිවේදනය හා මාධ්‍ය අධ්‍යයනය']
+  };
+
+  // For grade 10/11, the 3 elective rows use the category names themselves (පළමු/දෙවන/තෙවන කාණ්ඩය) so the
+  // sub-subject dropdown renders; the student's own saved sub-subject choice (from the Students tab) is
+  // passed along as the pre-selected value for each row.
   function defaultSubjectsForStudent(studentRec){
     const g = parseInt(studentRec && studentRec.gradeNumber, 10);
     if(g >= 6 && g <= 9){
-      const aesthetic = studentRec && studentRec.aestheticSubject;
-      return SUBJECTS_G6_9.map(s => (s === 'සෞන්දර්ය අධ්‍යාපනය' && aesthetic) ? aesthetic : s);
+      const aesthetic = (studentRec && studentRec.aestheticSubject) || '';
+      return SUBJECTS_G6_9.map(s => ({ name: s, sub: s === 'සෞන්දර්ය අධ්‍යාපනය' ? aesthetic : '' }));
     }
     if(g === 10 || g === 11){
-      const list = SUBJECTS_G10_11_CORE.slice();
+      const list = SUBJECTS_G10_11_CORE.map(s => ({ name: s, sub: '' }));
+      const catNames = { subject1: 'පළමු කාණ්ඩය', subject2: 'දෙවන කාණ්ඩය', subject3: 'තෙවන කාණ්ඩය' };
       ['subject1','subject2','subject3'].forEach(f=>{
-        const v = studentRec && studentRec[f];
-        if(v) list.push(v);
+        list.push({ name: catNames[f], sub: (studentRec && studentRec[f]) || '' });
       });
       return list;
     }
@@ -1366,7 +1380,7 @@ const studentsApi = wireCollection({
       if(changedStudent && !$('m_docId').value){
         $('m_subjectsBody').innerHTML = '';
         const defaults = defaultSubjectsForStudent(rec);
-        if(defaults && defaults.length) defaults.forEach(name => addSubjectRow(name, ''));
+        if(defaults && defaults.length) defaults.forEach(d => addSubjectRow(d.name, '', d.sub));
         else for(let i = 0; i < 5; i++) addSubjectRow();
       }
     }else{
@@ -1377,15 +1391,35 @@ const studentsApi = wireCollection({
   $('m_studentPick').addEventListener('input', matchStudentFromPick);
   $('m_studentPick').addEventListener('change', matchStudentFromPick);
 
-  function addSubjectRow(name, marks){
+  function addSubjectRow(name, marks, subValue){
     const row = document.createElement('div');
     row.className = 'subject-row';
     row.innerHTML = `<input class="m-subj-name" list="m_subjectSuggestions" placeholder="විෂය නම">
+      <span class="m-subj-subwrap" style="flex:1;min-width:150px;"></span>
       <input class="m-subj-marks" type="number" min="0" max="100" step="0.5" placeholder="ලකුණු">
       <button type="button" class="btn-del">✕</button>`;
-    row.querySelector('.m-subj-name').value = name || '';
+    const nameEl = row.querySelector('.m-subj-name');
+    const subWrap = row.querySelector('.m-subj-subwrap');
+    nameEl.value = name || '';
     row.querySelector('.m-subj-marks').value = (marks === undefined || marks === null) ? '' : marks;
     row.querySelector('.btn-del').addEventListener('click', ()=> row.remove());
+
+    // If the subject name matches a category (aesthetic education, or a grade 10-11 elective
+    // category), show a dropdown of its specific sub-subjects instead of leaving it free text.
+    function renderSubSelect(preselect){
+      const opts = SUBJECT_CATEGORY_OPTIONS[nameEl.value.trim()];
+      subWrap.innerHTML = '';
+      if(!opts) return;
+      const sel = document.createElement('select');
+      sel.className = 'm-subj-sub';
+      sel.innerHTML = '<option value="">-- උප විෂය තෝරන්න --</option>' +
+        opts.map(o => `<option${o === preselect ? ' selected' : ''}>${escapeHtml(o)}</option>`).join('');
+      subWrap.appendChild(sel);
+    }
+    renderSubSelect(subValue || '');
+    nameEl.addEventListener('input', ()=> renderSubSelect());
+    nameEl.addEventListener('change', ()=> renderSubSelect());
+
     $('m_subjectsBody').appendChild(row);
   }
   $('m_addSubject').addEventListener('click', ()=> addSubjectRow());
@@ -1465,7 +1499,10 @@ const studentsApi = wireCollection({
     e.preventDefault();
     if(!$('m_studentId').value){ showStatus('කරුණාකර ලැයිස්තුවෙන් වලංගු සිසුවෙකු තෝරන්න', true); return; }
     const subjects = [...document.querySelectorAll('#m_subjectsBody .subject-row')].map(row=>{
-      const name = row.querySelector('.m-subj-name').value.trim();
+      const subEl = row.querySelector('.m-subj-sub');
+      // When a sub-subject was picked (aesthetic / elective category rows), save that specific
+      // subject name; otherwise fall back to whatever was typed in the name field.
+      const name = (subEl && subEl.value.trim()) ? subEl.value.trim() : row.querySelector('.m-subj-name').value.trim();
       const mv = row.querySelector('.m-subj-marks').value;
       return { name, marks: mv === '' ? null : parseFloat(mv) };
     }).filter(s => s.name);
