@@ -115,6 +115,20 @@ th{background:#f6eeee;color:var(--maroon-dark);position:sticky;top:0;}
 .subject-row .m-subj-marks{width:100px;flex:none;}
 .subject-row button{flex:none;padding:8px 12px;font-size:.85rem;}
 
+/* ---- Subject-wise Analysis ---- */
+.stat-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:10px 0 4px;}
+.stat-card{background:#fcf8f6;border:1px solid var(--line);border-left:4px solid var(--maroon);border-radius:8px;padding:12px 14px;}
+.stat-card .lbl{font-size:.76rem;color:var(--muted);}
+.stat-card .val{font-size:1.5rem;font-weight:700;color:var(--maroon-dark);}
+.chart-wrap{position:relative;width:100%;overflow-x:auto;}
+.chart-wrap canvas{max-width:100%;}
+table.an-table td.bar-cell{min-width:120px;}
+.mini-bar{background:var(--line);border-radius:6px;height:14px;overflow:hidden;position:relative;}
+.mini-bar>span{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--maroon));border-radius:6px;}
+.grade-pill{display:inline-block;min-width:22px;text-align:center;padding:1px 6px;border-radius:10px;font-size:.72rem;font-weight:700;margin-right:3px;color:#fff;}
+.grade-pill.A{background:#1A7A60;} .grade-pill.B{background:#2C8FC9;} .grade-pill.C{background:#E8B400;color:#3D0016;}
+.grade-pill.S{background:#C9761B;} .grade-pill.F{background:#B03A2E;}
+
 /* ---- Marks & Results: responsive layout ---- */
 html{-webkit-text-size-adjust:100%;}
 .dgrid{grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));}
@@ -187,7 +201,7 @@ html{-webkit-text-size-adjust:100%;}
     </form>
     <div class="credit">
       <div class="by">Created by</div>
-      <div class="brand">NEXORA TECHNOLOGIES</div>
+      <div class="brand"><span style="color:#276CF5">NEXORA</span> <span style="color:#09B041">TECHNOLOGIES</span></div>
       <div class="tag">&ldquo;Building the Future, Digitally&rdquo;</div>
       <hr class="rule">
       <div class="contacts">
@@ -219,6 +233,7 @@ html{-webkit-text-size-adjust:100%;}
     <button data-tab="teachers" class="active">ගුරු දත්ත ගබඩාව (Teachers)</button>
     <button data-tab="students">සිසු ලේඛනය (Students)</button>
     <button data-tab="marks">ලකුණු හා ප්‍රතිඵල කළමනාකරණය (Marks &amp; Results)</button>
+    <button data-tab="analysis">විෂය අනුව විශ්ලේෂණය (Subject Analysis)</button>
   </nav>
 
   <div class="wrap">
@@ -561,11 +576,56 @@ html{-webkit-text-size-adjust:100%;}
       </div>
     </section>
 
+    <!-- ---------- SUBJECT-WISE ANALYSIS TAB ---------- -->
+    <section class="tabpanel" id="tab-analysis">
+      <div class="card">
+        <h2 style="margin-top:0;">විෂය අනුව ප්‍රතිඵල විශ්ලේෂණය (Subject-wise Result Analysis)</h2>
+        <div class="filters">
+          <b>පෙරහන (Filter):</b>
+          <select id="an_fYear"><option value="">සියලු වර්ෂ</option></select>
+          <select id="an_fTerm"><option value="">සියලු වාර</option><option>පළමු වාරය</option><option>දෙවන වාරය</option><option>තෙවන වාරය</option></select>
+          <select id="an_fGrade"><option value="">සියලු ශ්‍රේණි</option><option value="1">ශ්‍රේණිය 1</option><option value="2">ශ්‍රේණිය 2</option><option value="3">ශ්‍රේණිය 3</option><option value="4">ශ්‍රේණිය 4</option><option value="5">ශ්‍රේණිය 5</option><option value="6">ශ්‍රේණිය 6</option><option value="7">ශ්‍රේණිය 7</option><option value="8">ශ්‍රේණිය 8</option><option value="9">ශ්‍රේණිය 9</option><option value="10">ශ්‍රේණිය 10</option><option value="11">ශ්‍රේණිය 11</option><option value="12">ශ්‍රේණිය 12</option><option value="13">ශ්‍රේණිය 13</option></select>
+          <select id="an_fClass"><option value="">සියලු පන්ති</option><option value="A">A</option><option value="B">B</option><option value="කලා අංශය">කලා අංශය</option></select>
+        </div>
+        <div class="count" id="an_count"></div>
+        <div class="stat-cards" id="an_summaryCards"></div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top:0;">විෂය අනුව සාමාන්‍ය ලකුණු (Average Marks by Subject)</h2>
+        <div class="chart-wrap"><canvas id="an_avgChart" height="110"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top:0;">විෂය අනුව සමත් ප්‍රතිශතය (Pass % by Subject — 35 ට වැඩි)</h2>
+        <div class="chart-wrap"><canvas id="an_passChart" height="110"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top:0;">විෂය අනුව ශ්‍රේණිගත කිරීමේ ව්‍යාප්තිය (Grade Distribution by Subject)</h2>
+        <div class="chart-wrap"><canvas id="an_gradeChart" height="110"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="toolbar">
+          <h2 style="margin:0;">විස්තරාත්මක වගුව (Subject Details)</h2>
+          <div class="export-group">
+            <button class="btn-export csv" id="an_exportCsv">CSV</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="an-table"><thead><tr><th>විෂය (Subject)</th><th>සිසුන්</th><th>සාමාන්‍යය</th><th>ඉහළම</th><th>පහළම</th><th>සමත් %</th><th class="bar-cell">සමත් මට්ටම</th><th>ශ්‍රේණි ව්‍යාප්තිය (A/B/C/S/F)</th></tr></thead>
+          <tbody id="an_tbody"></tbody></table>
+        </div>
+        <div class="empty" id="an_empty" style="display:none;">විශ්ලේෂණය කිරීමට දත්ත නොමැත</div>
+      </div>
+    </section>
+
   </div>
   <footer class="app-credit">
     <div class="credit">
       <div class="by">Created by</div>
-      <div class="brand">NEXORA TECHNOLOGIES</div>
+      <div class="brand"><span style="color:#276CF5">NEXORA</span> <span style="color:#09B041">TECHNOLOGIES</span></div>
       <div class="tag">&ldquo;Building the Future, Digitally&rdquo;</div>
       <hr class="rule">
       <div class="contacts">
@@ -589,6 +649,7 @@ html{-webkit-text-size-adjust:100%;}
 </div></div>
 
 <!-- Export libraries (CSV/Excel/PDF) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -1564,6 +1625,8 @@ const studentsApi = wireCollection({
     refreshSubjectSuggestions();
     refreshYearFilterOptions();
     renderMarks();
+    refreshAnalysisYearOptions();
+    renderAnalysis();
   }, err => showStatus('ලකුණු දත්ත දෝෂයක්: ' + err.message, true));
 
   ['m_search','m_fYear','m_fTerm','m_fGrade','m_fClass'].forEach(id => $(id).addEventListener('input', renderMarks));
@@ -1691,6 +1754,140 @@ const studentsApi = wireCollection({
   $('m_exportCsv').addEventListener('click', ()=> marksVisible.length ? csvDownload('marks.csv', marksFieldIds, marksLabels, marksVisible) : none());
   $('m_exportXlsx').addEventListener('click', ()=> marksVisible.length ? excelDownload('marks.xlsx', marksFieldIds, marksLabels, marksVisible) : none());
   $('m_exportPdf').addEventListener('click', ()=> marksVisible.length ? pdfDownload('ලකුණු ලේඛනය - ධර්මරාජ විද්‍යාලය', marksFieldIds, marksLabels, marksVisible) : none());
+
+  // ================= Subject-wise Result Analysis (graphs + percentages) =================
+  let anCharts = {};
+  let anSubjStats = [];
+
+  function refreshAnalysisYearOptions(){
+    const years = [...new Set(marksRecords.map(r => r.year).filter(Boolean))].sort().reverse();
+    const sel = $('an_fYear'); const keep = sel.value;
+    sel.innerHTML = '<option value="">සියලු වර්ෂ</option>' + years.map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join('');
+    sel.value = years.includes(keep) ? keep : '';
+  }
+
+  function destroyAnCharts(){
+    Object.values(anCharts).forEach(c => { if(c) c.destroy(); });
+    anCharts = {};
+  }
+
+  // Aggregates every subject entry across the filtered marks records into per-subject
+  // statistics: how many students sat it, average/highest/lowest marks, pass % (>=35)
+  // and the A/B/C/S/F grade distribution — then draws the three charts and fills the table.
+  function renderAnalysis(){
+    if(!$('an_fYear')) return; // analysis tab not on this page (safety)
+    const y = $('an_fYear').value, t = $('an_fTerm').value, g = $('an_fGrade').value, c = $('an_fClass').value;
+    const filtered = marksRecords.filter(r=>{
+      if(y && r.year !== y) return false;
+      if(t && r.term !== t) return false;
+      if(g && String(r.gradeNumber) !== g) return false;
+      if(c && r.className !== c) return false;
+      return true;
+    });
+
+    const subjMap = {};
+    filtered.forEach(r=>{
+      (r.subjects || []).forEach(s=>{
+        const n = parseFloat(s.marks);
+        if(!s.name || isNaN(n)) return;
+        const st = subjMap[s.name] || (subjMap[s.name] = { name:s.name, count:0, sum:0, max:-Infinity, min:Infinity, pass:0, A:0,B:0,C:0,S:0,F:0 });
+        st.count++; st.sum += n;
+        if(n > st.max) st.max = n;
+        if(n < st.min) st.min = n;
+        if(n >= 35) st.pass++;
+        const gr = gradeFor(n);
+        if(st[gr] !== undefined) st[gr]++;
+      });
+    });
+
+    anSubjStats = Object.values(subjMap).map(st => ({
+      ...st,
+      avg: st.count ? st.sum / st.count : 0,
+      passPct: st.count ? (st.pass / st.count) * 100 : 0
+    })).sort((a,b) => b.avg - a.avg);
+
+    // ---- Summary cards ----
+    const totalRecords = filtered.length;
+    const overallAvg = totalRecords ? filtered.reduce((s,r)=> s + (parseFloat(r.average) || 0), 0) / totalRecords : 0;
+    const overallPassStudents = filtered.filter(r => (r.grade || '') !== 'F').length;
+    const overallPassPct = totalRecords ? (overallPassStudents / totalRecords) * 100 : 0;
+    const totalSubjEntries = anSubjStats.reduce((s,st)=> s + st.count, 0);
+    const subjPassEntries = anSubjStats.reduce((s,st)=> s + st.pass, 0);
+    const subjPassPct = totalSubjEntries ? (subjPassEntries / totalSubjEntries) * 100 : 0;
+
+    $('an_count').textContent = `විශ්ලේෂණය කරන ලද ලකුණු වාර්තා: ${totalRecords}` +
+      (totalRecords !== marksRecords.length ? ` (මුළු වාර්තා ${marksRecords.length} න්)` : '');
+
+    $('an_summaryCards').innerHTML = `
+      <div class="stat-card"><div class="lbl">විශ්ලේෂණය කළ වාර්තා (Records)</div><div class="val">${totalRecords}</div></div>
+      <div class="stat-card"><div class="lbl">සමස්ත සාමාන්‍යය (Overall Avg.)</div><div class="val">${overallAvg.toFixed(1)}%</div></div>
+      <div class="stat-card"><div class="lbl">සමස්ත සමත් ප්‍රතිශතය (Overall Pass %)</div><div class="val">${overallPassPct.toFixed(1)}%</div></div>
+      <div class="stat-card"><div class="lbl">විෂය-මට්ටමේ සමත් ප්‍රතිශතය (Subject Pass %)</div><div class="val">${subjPassPct.toFixed(1)}%</div></div>
+      <div class="stat-card"><div class="lbl">විශ්ලේෂණය කළ විෂය ගණන (Subjects)</div><div class="val">${anSubjStats.length}</div></div>`;
+
+    // ---- Table ----
+    $('an_tbody').innerHTML = '';
+    $('an_empty').style.display = anSubjStats.length ? 'none' : 'block';
+    anSubjStats.forEach(st=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${escapeHtml(st.name)}</td><td>${st.count}</td><td>${st.avg.toFixed(1)}</td>
+        <td>${isFinite(st.max) ? st.max : '-'}</td><td>${isFinite(st.min) ? st.min : '-'}</td>
+        <td>${st.passPct.toFixed(1)}%</td>
+        <td class="bar-cell"><div class="mini-bar"><span style="width:${Math.max(0,Math.min(100, st.passPct)).toFixed(1)}%"></span></div></td>
+        <td><span class="grade-pill A">A ${st.A}</span><span class="grade-pill B">B ${st.B}</span><span class="grade-pill C">C ${st.C}</span><span class="grade-pill S">S ${st.S}</span><span class="grade-pill F">F ${st.F}</span></td>`;
+      $('an_tbody').appendChild(tr);
+    });
+
+    // ---- Charts (Chart.js) ----
+    destroyAnCharts();
+    if(!anSubjStats.length || typeof Chart === 'undefined') return;
+    const labels = anSubjStats.map(st => st.name);
+
+    anCharts.avg = new Chart($('an_avgChart').getContext('2d'), {
+      type: 'bar',
+      data: { labels, datasets: [{ label: 'සාමාන්‍ය ලකුණු (%)', data: anSubjStats.map(st => +st.avg.toFixed(1)), backgroundColor: '#6F092E', borderRadius: 4 }] },
+      options: { responsive:true, plugins:{ legend:{ display:false },
+        tooltip:{ callbacks:{ label: ctx => `සාමාන්‍යය: ${ctx.parsed.y}%` } } },
+        scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } }, x:{ ticks:{ autoSkip:false, maxRotation:60, minRotation:0 } } } }
+    });
+
+    anCharts.pass = new Chart($('an_passChart').getContext('2d'), {
+      type: 'bar',
+      data: { labels, datasets: [{ label: 'සමත් % (Pass %)', data: anSubjStats.map(st => +st.passPct.toFixed(1)), backgroundColor: '#1A7A60', borderRadius: 4 }] },
+      options: { responsive:true, plugins:{ legend:{ display:false },
+        tooltip:{ callbacks:{ label: ctx => `සමත් ප්‍රතිශතය: ${ctx.parsed.y}%` } } },
+        scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } }, x:{ ticks:{ autoSkip:false, maxRotation:60, minRotation:0 } } } }
+    });
+
+    anCharts.grade = new Chart($('an_gradeChart').getContext('2d'), {
+      type: 'bar',
+      data: { labels, datasets: [
+        { label:'A', data: anSubjStats.map(st=>st.A), backgroundColor:'#1A7A60' },
+        { label:'B', data: anSubjStats.map(st=>st.B), backgroundColor:'#2C8FC9' },
+        { label:'C', data: anSubjStats.map(st=>st.C), backgroundColor:'#E8B400' },
+        { label:'S', data: anSubjStats.map(st=>st.S), backgroundColor:'#C9761B' },
+        { label:'F', data: anSubjStats.map(st=>st.F), backgroundColor:'#B03A2E' }
+      ]},
+      options: { responsive:true, plugins:{ legend:{ position:'bottom' } },
+        scales:{ x:{ stacked:true, ticks:{ autoSkip:false, maxRotation:60, minRotation:0 } }, y:{ stacked:true, beginAtZero:true, ticks:{ precision:0 } } } }
+    });
+  }
+
+  ['an_fYear','an_fTerm','an_fGrade','an_fClass'].forEach(id => $(id).addEventListener('change', renderAnalysis));
+
+  $('an_exportCsv').addEventListener('click', ()=>{
+    if(!anSubjStats.length) return none();
+    const rows = anSubjStats.map(st => ({
+      subject: st.name, count: st.count, average: st.avg.toFixed(1),
+      max: isFinite(st.max) ? st.max : '', min: isFinite(st.min) ? st.min : '',
+      passPct: st.passPct.toFixed(1), A: st.A, B: st.B, C: st.C, S: st.S, F: st.F
+    }));
+    csvDownload('subject_analysis.csv',
+      ['subject','count','average','max','min','passPct','A','B','C','S','F'],
+      { subject:'විෂය', count:'සිසුන් ගණන', average:'සාමාන්‍යය', max:'ඉහළම', min:'පහළම',
+        passPct:'සමත් %', A:'A ශ්‍රේණි', B:'B ශ්‍රේණි', C:'C ශ්‍රේණි', S:'S ශ්‍රේණි', F:'F ශ්‍රේණි' },
+      rows);
+  });
 })();
 
 // ---------- Conditional father/mother field groups ----------
