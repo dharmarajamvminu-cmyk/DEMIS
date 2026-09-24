@@ -326,9 +326,58 @@ th{background:#f6eeee;color:var(--maroon-dark);position:sticky;top:0;}
               <select id="s_receivingMedicalTreatment"><option value="">-- තෝරන්න --</option>
                 <option>නැත</option><option>ඔව්</option></select></div>
             <div class="f field span2" id="s_medicalReasonWrap"><label>වෛද්‍ය කරුණු / විශේෂ තොරතුරු (එසේ නම් හේතුව)</label><textarea id="s_medicalReason" rows="2" disabled placeholder="ඔව් තෝරූ පසු මෙය සක්‍රීය වේ"></textarea></div>
-            <div class="f field"><label>පළමු විෂය කාණ්ඩය</label><input id="s_subject1"></div>
-            <div class="f field"><label>දෙවන විෂය කාණ්ඩය</label><input id="s_subject2"></div>
-            <div class="f field"><label>තෙවන විෂය කාණ්ඩය</label><input id="s_subject3"></div>
+            <div id="s_aestheticGroup" style="display:none;">
+              <div class="f field span2">
+                <label>සෞන්දර්ය අධ්‍යාපනය විෂය (ශ්‍රේණි 6-9)</label>
+                <select id="s_aestheticSubject">
+                  <option value="">-- තෝරන්න --</option>
+                  <option>පෙරදිග සංගීතය</option>
+                  <option>නර්තනය</option>
+                  <option>චිත්‍ර</option>
+                  <option>නාට්‍ය හා රංග කලාව</option>
+                  <option>අපරදිග සංගීතය</option>
+                </select>
+              </div>
+            </div>
+            <div id="s_electiveGroup" style="display:none;">
+              <div class="f field">
+                <label>පළමු කාණ්ඩයේ විෂය</label>
+                <select id="s_subject1">
+                  <option value="">-- තෝරන්න --</option>
+                  <option>ව්‍යාපාර හා ගිණුම්කරණ අධ්‍යයනය</option>
+                  <option>භූගෝල විද්‍යාව</option>
+                  <option>පුරවැසි අධ්‍යාපනය</option>
+                  <option>ව්‍යවසායකත්ව අධ්‍යයනය</option>
+                  <option>දෙවන ජාතික භාෂාව – සිංහල / දෙමළ</option>
+                  <option>විදේශ භාෂා – ප්‍රංශ, ජර්මන්, ජපන්, හින්දි, අරාබි ආදිය</option>
+                </select>
+              </div>
+              <div class="f field">
+                <label>දෙවන කාණ්ඩයේ විෂය</label>
+                <select id="s_subject2">
+                  <option value="">-- තෝරන්න --</option>
+                  <option>චිත්‍ර කලාව</option>
+                  <option>නැටුම්</option>
+                  <option>සංගීතය – පෙරදිග / බටහිර</option>
+                  <option>නාට්‍ය හා රංග කලාව</option>
+                  <option>සාහිත්‍ය රසවින්දනය – සිංහල / දෙමළ / ඉංග්‍රීසි / අරාබි</option>
+                </select>
+              </div>
+              <div class="f field">
+                <label>තෙවන කාණ්ඩයේ විෂය <span style="color:var(--danger);font-weight:400;">(ගුරුවරයා විසින් තෝරාගත යුතුය)</span></label>
+                <select id="s_subject3" disabled>
+                  <option value="">-- තෝරන්න --</option>
+                  <option>තොරතුරු හා සන්නිවේදන තාක්ෂණය (ICT)</option>
+                  <option>සෞඛ්‍ය හා ශාරීරික අධ්‍යාපනය</option>
+                  <option>කෘෂිකර්ම හා ආහාර තාක්ෂණය</option>
+                  <option>ගෘහ ආර්ථික විද්‍යාව</option>
+                  <option>සන්නිවේදනය හා මාධ්‍ය අධ්‍යයනය</option>
+                </select>
+                <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin-top:6px;font-size:.78rem;color:var(--muted);">
+                  <input type="checkbox" id="s_subject3Unlock" style="width:auto;padding:0;"> ගුරුවරයා විසින් තෝරා ඇත (Confirmed by teacher)
+                </label>
+              </div>
+            </div>
             <div class="f field"><label>ආදායම් මට්ටම (Household Income)</label>
               <select id="s_monthlyIncome"><option value="">-- තෝරන්න --</option>
                 <option>මාසික ආදායම රු.15000 ට අඩු</option><option>මාසික ආදායම රු.15000 ට වැඩි</option></select></div>
@@ -790,7 +839,7 @@ const studentFieldIds = ['admissionNo','childNameSinhala','childNameEnglish','in
   'initialsNameEnglish','birthDate','age','address','birthCertNo','nicNo','gradeNumber','className','gender','ethnicity',
   'religion','fatherAlive','motherAlive','fatherName','fatherOccupation','fatherPhone','motherName',
   'motherOccupation','motherPhone','declarantName','relationship','contactPhone','transport','parentsAbroad',
-  'abroadMother','abroadFather','abroadCountry','passportNo','receivingMedicalTreatment','medicalReason','subject1','subject2','subject3',
+  'abroadMother','abroadFather','abroadCountry','passportNo','receivingMedicalTreatment','medicalReason','aestheticSubject','subject1','subject2','subject3',
   'monthlyIncome'];
 
 const studentLabels = {
@@ -808,7 +857,8 @@ const studentLabels = {
   abroadMother:'මව විදේශගතව සිටීද', abroadFather:'පියා විදේශගතව සිටීද',
   abroadCountry:'එසේනම් රට (Country)', passportNo:'විදෙස් ගමන් බලපත්‍ර අංකය (Passport No.)',
   receivingMedicalTreatment:'දරුවා වෛද්‍ය ප්‍රතිකාර ලබන්නේද?', medicalReason:'වෛද්‍ය කරුණු / විශේෂ තොරතුරු',
-  subject1:'පළමු විෂය කාණ්ඩය', subject2:'දෙවන විෂය කාණ්ඩය', subject3:'තෙවන විෂය කාණ්ඩය',
+  aestheticSubject:'සෞන්දර්ය අධ්‍යාපනය විෂය (6-9)',
+  subject1:'පළමු කාණ්ඩයේ විෂය', subject2:'දෙවන කාණ්ඩයේ විෂය', subject3:'තෙවන කාණ්ඩයේ විෂය',
   monthlyIncome:'ආදායම් මට්ටම (Household Income)'
 };
 
@@ -890,6 +940,54 @@ const studentsApi = wireCollection({
   buildClassOptions();
 })();
 
+// ---------- Conditional subject groups by grade (aesthetic for 6-9, elective categories for 10-11) ----------
+(function(){
+  const gradeSel = document.getElementById('s_gradeNumber');
+  const aestheticGroup = document.getElementById('s_aestheticGroup');
+  const electiveGroup = document.getElementById('s_electiveGroup');
+  const aestheticSel = document.getElementById('s_aestheticSubject');
+  const subject1Sel = document.getElementById('s_subject1');
+  const subject2Sel = document.getElementById('s_subject2');
+  const subject3Sel = document.getElementById('s_subject3');
+  const subject3Unlock = document.getElementById('s_subject3Unlock');
+  const studentFormEl = document.getElementById('studentForm');
+  const studentTbody = document.getElementById('s_tbody');
+
+  function toggleSubjectGroups(clearHidden){
+    const g = parseInt(gradeSel.value, 10);
+    const showAesthetic = g >= 6 && g <= 9;
+    const showElective = g === 10 || g === 11;
+
+    aestheticGroup.style.display = showAesthetic ? 'contents' : 'none';
+    if(!showAesthetic && clearHidden) aestheticSel.value = '';
+
+    electiveGroup.style.display = showElective ? 'contents' : 'none';
+    if(!showElective && clearHidden){
+      subject1Sel.value = ''; subject2Sel.value = '';
+      subject3Sel.value = ''; subject3Sel.disabled = true; subject3Unlock.checked = false;
+    }
+  }
+
+  // The 3rd elective category is a teacher decision, not a student self-selection -
+  // keep it locked until the teacher confirms via the checkbox.
+  subject3Unlock.addEventListener('change', ()=>{
+    subject3Sel.disabled = !subject3Unlock.checked;
+    if(!subject3Unlock.checked) subject3Sel.value = '';
+  });
+
+  gradeSel.addEventListener('change', ()=> toggleSubjectGroups(true));
+  studentFormEl.addEventListener('reset', ()=> setTimeout(()=> toggleSubjectGroups(false), 0));
+  studentTbody.addEventListener('click', (e)=>{
+    if(e.target.getAttribute('data-edit')) setTimeout(()=>{
+      toggleSubjectGroups(false);
+      // If a saved record already has a 3rd-category subject, treat it as teacher-confirmed and unlock it.
+      if(subject3Sel.value){ subject3Unlock.checked = true; subject3Sel.disabled = false; }
+    }, 0);
+  });
+
+  toggleSubjectGroups(false); // initial state on page load
+})();
+
 // ---------- Promotion, transfer, archive, detail view ----------
 (function(){
   const $ = id => document.getElementById(id);
@@ -966,7 +1064,7 @@ const studentsApi = wireCollection({
       ['මව්පිය / භාරකරු තොරතුරු', ['fatherAlive','motherAlive','fatherName','fatherOccupation','fatherPhone','motherName','motherOccupation','motherPhone','declarantName','relationship','contactPhone','transport','monthlyIncome']],
       ['විදේශගත තොරතුරු', ['parentsAbroad','abroadMother','abroadFather','abroadCountry','passportNo']],
       ['වෛද්‍ය තොරතුරු', ['receivingMedicalTreatment','medicalReason']],
-      ['විෂය කාණ්ඩ', ['subject1','subject2','subject3']]
+      ['විෂය කාණ්ඩ', ['aestheticSubject','subject1','subject2','subject3']]
     ];
     const used = new Set(groups.flatMap(g => g[1]));
     const rest = fieldIds.filter(f => !used.has(f));
@@ -1226,7 +1324,10 @@ const studentsApi = wireCollection({
   // (පළමු/දෙවන/තෙවන විෂය කාණ්ඩය, already captured on the Students tab) when available.
   function defaultSubjectsForStudent(studentRec){
     const g = parseInt(studentRec && studentRec.gradeNumber, 10);
-    if(g >= 6 && g <= 9) return SUBJECTS_G6_9.slice();
+    if(g >= 6 && g <= 9){
+      const aesthetic = studentRec && studentRec.aestheticSubject;
+      return SUBJECTS_G6_9.map(s => (s === 'සෞන්දර්ය අධ්‍යාපනය' && aesthetic) ? aesthetic : s);
+    }
     if(g === 10 || g === 11){
       const list = SUBJECTS_G10_11_CORE.slice();
       ['subject1','subject2','subject3'].forEach(f=>{
