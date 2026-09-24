@@ -387,7 +387,8 @@ html{-webkit-text-size-adjust:100%;}
             <div class="f field"><label>භාරකරු නම (Declarant)</label><input id="s_declarantName"></div>
             <div class="f field"><label>සම්බන්ධතාවය (Relationship)</label><input id="s_relationship"></div>
             <div class="f field"><label>සම්බන්ධ වීමේ දුරකථනය</label><input type="tel" id="s_contactPhone"></div>
-            <div class="f field"><label>ප්‍රවාහන ක්‍රමය (Transport)</label><input id="s_transport"></div>
+            <div class="f field"><label>ප්‍රවාහන ක්‍රමය (Transport)</label><select id="s_transport"><option value="">-- තෝරන්න --</option>
+                <option>පොදු ප්‍රවාහන සේවය</option><option>පාසල් ප්‍රවාහන සේවය</option><option>බයිසිකලයෙන්</option><option>පයින්</option><option>දුම්රියෙන්</option><option>වෙනත්</option></select></div>
             <div class="f field"><label>මව/පියා විදේශගතව සිටීද?</label>
               <select id="s_parentsAbroad"><option value="">-- තෝරන්න --</option>
                 <option>නැත</option><option>ඔව්</option></select></div>
@@ -1557,7 +1558,10 @@ const studentsApi = wireCollection({
       });
       return list;
     }
-    return null; // grades 1-5, 12-13: no fixed default list, use blank rows
+    if(g >= 1 && g <= 5){
+      return ['මව්බස', 'පරිසරය', 'ගණිතය', 'බුද්ධ ධර්මය', 'ඉංග්‍රීසි', 'දෙමළ'].map(s => ({ name: s, sub: '' }));
+    }
+    return null; // grades 12-13: no fixed default list, use blank rows
   }
 
   let marksRecords = [], marksVisible = [];
