@@ -789,6 +789,15 @@ function pdfDownload(title, fieldIds, labels, rows){
     </table>`;
   document.body.appendChild(container);
   showStatus('PDF සකසමින්...');
+
+  // Record the top offset of every table row (relative to the container, in CSS px) BEFORE
+  // capture, so the exported PDF can be split only *between* rows — never through the middle
+  // of one. This is what was causing rows to be sliced in half across a page break.
+  const containerTop = container.getBoundingClientRect().top;
+  const rowTops = Array.from(container.querySelectorAll('tbody tr'))
+    .map(tr => tr.getBoundingClientRect().top - containerTop);
+  const containerHeight = container.getBoundingClientRect().height;
+
   html2canvas(container, {scale:2, backgroundColor:'#ffffff'}).then(canvas=>{
     document.body.removeChild(container);
     const { jsPDF } = window.jspdf;
@@ -799,15 +808,25 @@ function pdfDownload(title, fieldIds, labels, rows){
     const imgWidth = pageWidth - margin*2;
     const imgHeight = canvas.height * imgWidth / canvas.width;
     const imgData = canvas.toDataURL('image/png');
-    let heightLeft = imgHeight;
-    let position = margin;
-    pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
-    heightLeft -= (pageHeight - margin*2);
-    while(heightLeft > 0){
-      position = margin - (imgHeight - heightLeft);
-      pdf.addPage();
-      pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
-      heightLeft -= (pageHeight - margin*2);
+
+    // Convert the row-boundary offsets into the same unit space as imgHeight (pt), then use
+    // them as the only allowed places to end a page.
+    const pxToImgPt = imgHeight / containerHeight;
+    const cutLines = rowTops.map(t => t * pxToImgPt).filter(t => t > 0 && t < imgHeight);
+    const usablePerPage = pageHeight - margin*2;
+
+    let renderedTo = 0, firstPage = true;
+    while(renderedTo < imgHeight - 0.5){
+      let sliceEnd = Math.min(renderedTo + usablePerPage, imgHeight);
+      if(sliceEnd < imgHeight){
+        // Snap the break back to the nearest safe row boundary at or before the natural cut.
+        const candidates = cutLines.filter(c => c > renderedTo + 1 && c <= sliceEnd);
+        if(candidates.length) sliceEnd = candidates[candidates.length - 1];
+      }
+      if(!firstPage) pdf.addPage();
+      pdf.addImage(imgData, 'PNG', margin, margin - renderedTo, imgWidth, imgHeight);
+      renderedTo = sliceEnd;
+      firstPage = false;
     }
     pdf.save(title.replace(/\s+/g,'_') + '.pdf');
     showStatus('PDF බාගත කරන ලදී');
@@ -2078,6 +2097,15 @@ const studentsApi = wireCollection({
     if(!window.html2canvas || !window.jspdf){ showStatus('PDF library load වී නැත (network අවශ්‍යයි)', true); return; }
     const section = $('tab-analysis');
     showStatus('PDF සකසමින්...');
+
+    // Same fix as pdfDownload(): note every table row's top offset before capture so the
+    // page break never lands in the middle of a row (this was the cause of the black band
+    // cutting through the "විස්තරාත්මක වගුව" table).
+    const sectionTop = section.getBoundingClientRect().top;
+    const rowTops = Array.from(section.querySelectorAll('tbody tr'))
+      .map(tr => tr.getBoundingClientRect().top - sectionTop);
+    const sectionHeight = section.getBoundingClientRect().height;
+
     html2canvas(section, {scale:2, backgroundColor:'#ffffff', ignoreElements: el => el.classList && el.classList.contains('export-group')}).then(canvas=>{
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({orientation:'portrait', unit:'pt', format:'a4'});
@@ -2087,15 +2115,22 @@ const studentsApi = wireCollection({
       const imgWidth = pageWidth - margin*2;
       const imgHeight = canvas.height * imgWidth / canvas.width;
       const imgData = canvas.toDataURL('image/png');
-      let heightLeft = imgHeight;
-      let position = margin;
-      pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
-      heightLeft -= (pageHeight - margin*2);
-      while(heightLeft > 0){
-        position = margin - (imgHeight - heightLeft);
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
-        heightLeft -= (pageHeight - margin*2);
+
+      const pxToImgPt = imgHeight / sectionHeight;
+      const cutLines = rowTops.map(t => t * pxToImgPt).filter(t => t > 0 && t < imgHeight);
+      const usablePerPage = pageHeight - margin*2;
+
+      let renderedTo = 0, firstPage = true;
+      while(renderedTo < imgHeight - 0.5){
+        let sliceEnd = Math.min(renderedTo + usablePerPage, imgHeight);
+        if(sliceEnd < imgHeight){
+          const candidates = cutLines.filter(c => c > renderedTo + 1 && c <= sliceEnd);
+          if(candidates.length) sliceEnd = candidates[candidates.length - 1];
+        }
+        if(!firstPage) pdf.addPage();
+        pdf.addImage(imgData, 'PNG', margin, margin - renderedTo, imgWidth, imgHeight);
+        renderedTo = sliceEnd;
+        firstPage = false;
       }
       pdf.save('subject_analysis.pdf');
       showStatus('PDF බාගත කරන ලදී');
