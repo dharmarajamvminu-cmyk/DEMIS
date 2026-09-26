@@ -811,7 +811,7 @@ function pdfDownload(title, fieldIds, labels, rows){
     const margin = 20;
     const imgWidth = pageWidth - margin*2;
     const imgHeight = canvas.height * imgWidth / canvas.width;
-    const imgData = canvas.toDataURL('image/png');
+    const imgData = canvas.toDataURL('image/jpeg', 0.92);
 
     // Convert the row-boundary offsets into the same unit space as imgHeight (pt), then use
     // them as the only allowed places to end a page.
@@ -828,7 +828,7 @@ function pdfDownload(title, fieldIds, labels, rows){
         if(candidates.length) sliceEnd = candidates[candidates.length - 1];
       }
       if(!firstPage) pdf.addPage();
-      pdf.addImage(imgData, 'PNG', margin, margin - renderedTo, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'JPEG', margin, margin - renderedTo, imgWidth, imgHeight);
       renderedTo = sliceEnd;
       firstPage = false;
     }
@@ -1368,7 +1368,7 @@ const studentsApi = wireCollection({
       const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight(), m = 24;
       let iw = pw - m*2, ih = canvas.height * iw / canvas.width;
       if(ih > ph - m*2){ const k = (ph - m*2) / ih; iw *= k; ih *= k; }   // always fit on one page
-      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', (pw - iw) / 2, m, iw, ih);
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', (pw - iw) / 2, m, iw, ih);
       pdf.save(('Student_' + (rec.admissionNo || 'record') + '.pdf').replace(/[^\w.\-]+/g, '_'));
       showStatus('PDF බාගත කරන ලදී');
     }).catch(err=>{ if(c.parentNode) document.body.removeChild(c); showStatus('PDF දෝෂයක්: ' + err.message, true); });
@@ -1414,7 +1414,7 @@ const studentsApi = wireCollection({
       const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight(), m = 24;
       let iw = pw - m*2, ih = canvas.height * iw / canvas.width;
       if(ih > ph - m*2){ const k = (ph - m*2) / ih; iw *= k; ih *= k; }   // always fit on one page
-      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', (pw - iw) / 2, m, iw, ih);
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', (pw - iw) / 2, m, iw, ih);
       pdf.save(('Teacher_' + (rec.nic || 'record') + '.pdf').replace(/[^\w.\-]+/g, '_'));
       showStatus('PDF බාගත කරන ලදී');
     }).catch(err=>{ if(c.parentNode) document.body.removeChild(c); showStatus('PDF දෝෂයක්: ' + err.message, true); });
@@ -1872,7 +1872,7 @@ const studentsApi = wireCollection({
       const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight(), m = 24;
       let iw = pw - m*2, ih = canvas.height * iw / canvas.width;
       if(ih > ph - m*2){ const k = (ph - m*2) / ih; iw *= k; ih *= k; }
-      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', (pw - iw) / 2, m, iw, ih);
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', (pw - iw) / 2, m, iw, ih);
       pdf.save(('Report_' + (rec.admissionNo || 'record') + '_' + (rec.year || '') + '_' + (rec.term || '')).replace(/[^\w.\-]+/g, '_') + '.pdf');
       showStatus('PDF බාගත කරන ලදී');
     }).catch(err=>{ if(c.parentNode) document.body.removeChild(c); showStatus('PDF දෝෂයක්: ' + err.message, true); });
@@ -2118,7 +2118,7 @@ const studentsApi = wireCollection({
       const margin = 20;
       const imgWidth = pageWidth - margin*2;
       const imgHeight = canvas.height * imgWidth / canvas.width;
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/jpeg', 0.92);
 
       const pxToImgPt = imgHeight / sectionHeight;
       const cutLines = rowTops.map(t => t * pxToImgPt).filter(t => t > 0 && t < imgHeight);
@@ -2132,7 +2132,7 @@ const studentsApi = wireCollection({
           if(candidates.length) sliceEnd = candidates[candidates.length - 1];
         }
         if(!firstPage) pdf.addPage();
-        pdf.addImage(imgData, 'PNG', margin, margin - renderedTo, imgWidth, imgHeight);
+        pdf.addImage(imgData, 'JPEG', margin, margin - renderedTo, imgWidth, imgHeight);
         renderedTo = sliceEnd;
         firstPage = false;
       }
