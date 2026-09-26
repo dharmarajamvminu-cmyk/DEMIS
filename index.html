@@ -776,14 +776,14 @@ function pdfDownload(title, fieldIds, labels, rows){
   const container = document.createElement('div');
   container.style.cssText = 'position:fixed;left:-99999px;top:0;background:#fff;padding:22px;width:1400px;';
   container.style.fontFamily = "'Noto Sans Sinhala', sans-serif";
-  const th = f => `<th style="border:1px solid #ccc;padding:7px 9px;background:#f6eeee;color:#6F092E;text-align:left;font-size:13px;white-space:nowrap;">${escapeHtml(labels[f]||f)}</th>`;
-  const td = (r,f) => `<td style="border:1px solid #ccc;padding:6px 9px;font-size:12.5px;">${escapeHtml(r[f]||'')}</td>`;
+  const th = f => `<th style="border:1px solid #ccc;padding:7px 9px;background:#f6eeee;color:#6F092E;text-align:left;font-size:13px;word-break:break-word;">${escapeHtml(labels[f]||f)}</th>`;
+  const td = (r,f) => `<td style="border:1px solid #ccc;padding:6px 9px;font-size:12.5px;word-break:break-word;">${escapeHtml(r[f]||'')}</td>`;
   container.innerHTML = `
     <div style="display:flex;align-items:center;gap:14px;margin:0 0 14px;">
       ${SCHOOL_LOGO ? `<img src="${SCHOOL_LOGO}" style="height:54px;width:54px;object-fit:contain;flex-shrink:0;">` : ''}
       <h2 style="color:#6F092E;font-family:'Noto Serif Sinhala',serif;margin:0;">${escapeHtml(title)}</h2>
     </div>
-    <table style="border-collapse:collapse;width:100%;">
+    <table style="border-collapse:collapse;width:100%;table-layout:fixed;">
       <thead><tr>${fieldIds.map(th).join('')}</tr></thead>
       <tbody>${rows.map(r => `<tr>${fieldIds.map(f=>td(r,f)).join('')}</tr>`).join('')}</tbody>
     </table>`;
@@ -796,9 +796,13 @@ function pdfDownload(title, fieldIds, labels, rows){
   const containerTop = container.getBoundingClientRect().top;
   const rowTops = Array.from(container.querySelectorAll('tbody tr'))
     .map(tr => tr.getBoundingClientRect().top - containerTop);
-  const containerHeight = container.getBoundingClientRect().height;
+  // Use scrollWidth/scrollHeight (not just the declared box size) so that if the table's
+  // content ever forces it wider/taller than the container, html2canvas still captures
+  // the whole thing instead of silently clipping the right-hand / bottom fields.
+  const containerWidth = container.scrollWidth;
+  const containerHeight = container.scrollHeight;
 
-  html2canvas(container, {scale:2, backgroundColor:'#ffffff'}).then(canvas=>{
+  html2canvas(container, {scale:2, backgroundColor:'#ffffff', width: containerWidth, height: containerHeight, windowWidth: containerWidth}).then(canvas=>{
     document.body.removeChild(container);
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({orientation:'landscape', unit:'pt', format:'a4'});
