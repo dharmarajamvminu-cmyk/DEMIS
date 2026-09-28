@@ -2433,6 +2433,38 @@ const studentsApi = wireCollection({
   });
 })();
 
+
+// ---------- shared grade/class dropdown helpers for report + signature modals ----------
+function gradeFilterInfo(src){
+  if(!src.gradeField && !src.classField) return null;
+  const base = src.all ? src.all() : (src.rows() || []);
+  const fromSel = id => { const el = document.getElementById(id); return el ? Array.from(el.options).filter(o=>o.value!=='').map(o=>({v:o.value, t:o.text.trim()})) : []; };
+  const distinct = f => Array.from(new Set(base.map(r=>String(r[f]||'')).filter(Boolean)))
+    .sort((a,b)=>a.localeCompare(b, undefined, {numeric:true})).map(v=>({v, t:v}));
+  const grades = src.gradeField ? (src.gradeSel ? fromSel(src.gradeSel) : distinct(src.gradeField)) : [];
+  const classes = src.classField ? (src.classSel ? fromSel(src.classSel) : distinct(src.classField)) : [];
+  const cur = id => { const el = id && document.getElementById(id); return el ? el.value : ''; };
+  return { base, grades, classes,
+    defG: src.defFromList ? cur(src.gradeSel) : '', defC: src.defFromList ? cur(src.classSel) : '' };
+}
+function fillFilterSelects(gf, gSel, cSel, gWrap, cWrap){
+  const fill = (sel, wrap, opts, def, allText)=>{
+    const show = !!gf && opts.length > 0;
+    wrap.style.display = show ? '' : 'none';
+    sel.innerHTML = '';
+    const o0 = document.createElement('option'); o0.value = ''; o0.textContent = allText; sel.appendChild(o0);
+    if(show) opts.forEach(o=>{ const op = document.createElement('option'); op.value = o.v; op.textContent = o.t; sel.appendChild(op); });
+    sel.value = show ? (def || '') : '';
+    if(sel.value !== (def || '')) sel.value = '';
+  };
+  fill(gSel, gWrap, gf ? gf.grades : [], gf ? gf.defG : '', 'සියලු ශ්‍රේණි (All grades)');
+  fill(cSel, cWrap, gf ? gf.classes : [], gf ? gf.defC : '', 'සියලු පන්ති (All classes)');
+}
+function filterRows(gf, src, g, c){
+  const base = gf ? gf.base : (src.rows() || []);
+  return base.filter(r => (!g || String(r[src.gradeField]) === g) && (!c || String(r[src.classField]) === c));
+}
+
 // ---------- Custom report builder (choose fields -> CSV / Excel / PDF) ----------
 (function(){
   const NO_ID = '__no';
@@ -2463,6 +2495,10 @@ const studentsApi = wireCollection({
         <label for="rb_title">වාර්තාවේ මාතෘකාව (Report title)</label>
         <input id="rb_title">
       </div>
+      <div class="sg-form" style="margin-top:0;">
+        <div id="rb_gradeWrap"><label>ශ්‍රේණිය (Grade)</label><select id="rb_grade"></select></div>
+        <div id="rb_classWrap"><label>පන්තිය (Class)</label><select id="rb_class"></select></div>
+      </div>
       <label class="rb-item" style="margin-bottom:8px;"><input type="checkbox" id="rb_serial" checked><span>අනු අංකය ඇතුළත් කරන්න (Include serial No.)</span></label>
       <div class="rb-tools">
         <button type="button" class="btn-secondary" id="rb_all">සියල්ල තෝරන්න (Select all)</button>
@@ -2487,12 +2523,17 @@ const studentsApi = wireCollection({
     const m = ensureModal();
     const $ = id => m.querySelector('#' + id);
     const grid = $('rb_grid');
-    const rowsNow = () => (src.rows() || []);
+    const gf = gradeFilterInfo(src);
+    const gSel = $('rb_grade'), cSel = $('rb_class');
+    fillFilterSelects(gf, gSel, cSel, $('rb_gradeWrap'), $('rb_classWrap'));
+    const rowsNow = () => filterRows(gf, src, gSel.value, cSel.value);
     const saved = loadSel(key);
     const initial = new Set(saved ? saved.filter(f => src.fieldIds.includes(f)) : src.fieldIds);
 
     $('rb_title').value = src.title;
-    $('rb_info').textContent = `වාර්තාවට ඇතුළත් වන වාර්තා ගණන (Records in report): ${rowsNow().length} — දැනට පෙන්වන ලැයිස්තුව / සෙවුම / පෙරහන අනුව`;
+    const updInfo = () => { $('rb_info').textContent = `වාර්තාවට ඇතුළත් වන වාර්තා ගණන (Records in report): ${rowsNow().length}`; };
+    gSel.onchange = cSel.onchange = updInfo;
+    updInfo();
     grid.innerHTML = '';
     src.fieldIds.forEach(f=>{
       const lab = document.createElement('label');
@@ -2539,11 +2580,11 @@ const studentsApi = wireCollection({
   }
 
   const sources = {
-    staff: { csvId: 't_exportCsv', src: () => ({ fieldIds: teacherFieldIds, labels: teacherLabels, rows: () => teachersApi.getVisible(), title: 'කාර්ය මණ්ඩල වාර්තාව (Staff Report)', file: 'staff_report' }) },
-    students: { csvId: 's_exportCsv', src: () => ({ fieldIds: studentFieldIds, labels: studentLabels, rows: () => studentsApi.getVisible(), title: 'සිසු වාර්තාව (Student Report)', file: 'student_report' }) },
-    studentArchive: { csvId: 'a_exportCsv', src: () => reportSources.studentArchive },
-    staffArchive: { csvId: 'ta_exportCsv', src: () => reportSources.staffArchive },
-    marks: { csvId: 'm_exportCsv', src: () => reportSources.marks }
+    staff: { csvId: 't_exportCsv', src: () => ({ fieldIds: teacherFieldIds, labels: teacherLabels, rows: () => teachersApi.getVisible(), all: () => teachersApi.getRecords(), gradeField:'grade', title: 'කාර්ය මණ්ඩල වාර්තාව (Staff Report)', file: 'staff_report' }) },
+    students: { csvId: 's_exportCsv', src: () => ({ fieldIds: studentFieldIds, labels: studentLabels, rows: () => studentsApi.getVisible(), all: () => studentsApi.getRecords(), gradeField:'gradeNumber', classField:'className', gradeSel:'s_fGrade', classSel:'s_fClass', defFromList:true, title: 'සිසු වාර්තාව (Student Report)', file: 'student_report' }) },
+    studentArchive: { csvId: 'a_exportCsv', src: () => Object.assign({}, reportSources.studentArchive, {gradeField:'gradeNumber', classField:'className', gradeSel:'s_fGrade', classSel:'s_fClass'}) },
+    staffArchive: { csvId: 'ta_exportCsv', src: () => Object.assign({}, reportSources.staffArchive, {gradeField:'grade'}) },
+    marks: { csvId: 'm_exportCsv', src: () => Object.assign({}, reportSources.marks, {gradeField:'gradeNumber', classField:'className', gradeSel:'s_fGrade', classSel:'s_fClass'}) }
   };
 
   Object.keys(sources).forEach(key=>{
@@ -2583,7 +2624,9 @@ const studentsApi = wireCollection({
       <div class="sg-form">
         <div class="full"><label>මාතෘකාව (Title)</label><input id="sg_title"></div>
         <div><label>දිනය (Date)</label><input type="date" id="sg_date"></div>
-        <div><label>ශ්‍රේණිය / පන්තිය / විස්තරය (Class / Details)</label><input id="sg_class"></div>
+        <div id="sg_gradeWrap"><label>ශ්‍රේණිය (Grade)</label><select id="sg_grade"></select></div>
+        <div id="sg_classWrap"><label>පන්තිය (Class)</label><select id="sg_class_sel"></select></div>
+        <div class="full"><label>ශ්‍රේණිය / පන්තිය / විස්තරය (Class / Details)</label><input id="sg_class"></div>
         <div class="full"><label>රැස්වීමේ විෂයය (Meeting subject) — අවශ්‍ය නම්</label><input id="sg_topic"></div>
       </div>
       <div class="rb-tools"><b style="font-size:.9rem;">ලේඛනයේ පෙන්විය යුතු තොරතුරු (Columns)</b><span class="rb-count" id="sg_count"></span></div>
@@ -2605,15 +2648,24 @@ const studentsApi = wireCollection({
 
   function openSheet(key, src){
     const m=ensureModal(); const $=id=>m.querySelector('#'+id);
-    const rowsNow=()=> (src.rows()||[]);
+    const gf=gradeFilterInfo(src);
+    const gSel=$('sg_grade'), cSel=$('sg_class_sel');
+    fillFilterSelects(gf, gSel, cSel, $('sg_gradeWrap'), $('sg_classWrap'));
+    const rowsNow=()=> filterRows(gf, src, gSel.value, cSel.value);
     const saved=loadSel(key);
     const on=new Set(saved ? saved.filter(f=>src.pick.includes(f)) : src.defaults);
     $('sg_title').value=src.title;
     $('sg_date').value=today();
-    $('sg_class').value=src.details ? src.details() : '';
+    let touched=false;
+    $('sg_class').oninput=()=>{ touched=true; };
+    const optText=sel=> sel.value && sel.selectedOptions[0] ? sel.selectedOptions[0].text.trim() : '';
+    const autoDetails=()=>{ if(!touched) $('sg_class').value=[optText(gSel),optText(cSel)].filter(Boolean).join(' - '); };
+    autoDetails();
     $('sg_topic').value='';
     $('sg_rem').checked=false;
-    $('sg_info').textContent=`ලේඛනයට ඇතුළත් වන ගණන (Entries): ${rowsNow().length} — දැනට පෙන්වන ලැයිස්තුව / පෙරහන අනුව`;
+    const updInfo=()=>{ $('sg_info').textContent=`ලේඛනයට ඇතුළත් වන ගණන (Entries): ${rowsNow().length}`; };
+    gSel.onchange=cSel.onchange=()=>{ updInfo(); autoDetails(); };
+    updInfo();
     const grid=$('sg_grid'); grid.innerHTML='';
     src.pick.forEach(f=>{
       const lab=document.createElement('label'); lab.className='rb-item';
@@ -2714,13 +2766,13 @@ const studentsApi = wireCollection({
     students:{ csvId:'s_exportCsv', src:()=>({
       pick:['admissionNo','childNameSinhala','childNameEnglish','initialsNameSinhala','gradeNumber','className','fatherName','motherName','declarantName','relationship','contactPhone'],
       defaults:['admissionNo','childNameSinhala'],
-      labels:studentLabels, rows:()=>studentsApi.getVisible(),
+      labels:studentLabels, rows:()=>studentsApi.getVisible(), all:()=>studentsApi.getRecords(), gradeField:'gradeNumber', classField:'className', gradeSel:'s_fGrade', classSel:'s_fClass', defFromList:true,
       title:'පන්ති රැස්වීම් අත්සන් ලේඛනය (Class Meeting Signature Sheet)', file:'student_signature_sheet',
       details:()=>[selText('s_fGrade'),selText('s_fClass')].filter(Boolean).join(' - ') }) },
     staff:{ csvId:'t_exportCsv', src:()=>({
       pick:['nic','fullName','position','grade','mainSubject','phone'],
       defaults:['fullName','position'],
-      labels:teacherLabels, rows:()=>teachersApi.getVisible(),
+      labels:teacherLabels, rows:()=>teachersApi.getVisible(), all:()=>teachersApi.getRecords(), gradeField:'grade',
       title:'කාර්ය මණ්ඩල රැස්වීම් අත්සන් ලේඛනය (Staff Meeting Signature Sheet)', file:'staff_signature_sheet' }) }
   };
 
