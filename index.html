@@ -119,6 +119,12 @@ th{background:#f6eeee;color:var(--maroon-dark);position:sticky;top:0;}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:50;padding:16px;}
 .modal.show{display:flex;}
 .modal-box{background:#fff;border-radius:12px;max-width:860px;width:100%;max-height:90vh;overflow:auto;padding:20px;}
+#idleModal{z-index:9999;}
+#idleModal .modal-box{max-width:380px;text-align:center;}
+#idleModal .modal-box h3{margin:0 0 10px;color:var(--maroon);font-size:1.1rem;}
+#idleModal .modal-box p{margin:0 0 6px;color:var(--muted);font-size:.9rem;}
+#idleModal .modal-box .idleCount{font-size:1.9rem;font-weight:700;color:var(--gold);margin:10px 0;}
+#idleModal .modal-box .btns{display:flex;gap:10px;justify-content:center;margin-top:14px;}
 .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:4px 20px;margin:12px 0;}
 .dl{border-bottom:1px solid var(--line);padding:6px 0;display:flex;flex-direction:column;font-size:.9rem;}
 .dl span{color:#777;font-size:.76rem;}
@@ -341,6 +347,20 @@ header,.header-brand,.header-brand > div{min-width:0;}
 </style>
 </head>
 <body>
+
+<!-- ===================== IDLE TIMEOUT WARNING ===================== -->
+<div class="modal" id="idleModal">
+  <div class="modal-box">
+    <h3>සැසිය ඉවරයි</h3>
+    <p>ඔබ යම් කාලයක සිට පද්ධතිය භාවිත කර නැත.</p>
+    <div class="idleCount" id="idleCountdown">60</div>
+    <p>තත්පර ඇතුළත ක්‍රියාශීලී නොවුනහොත් ඔබ ස්වයංක්‍රීයව Logout වනු ඇත.</p>
+    <div class="btns">
+      <button class="btn-primary" id="idleStayBtn">දිගටම පවතින්න</button>
+      <button class="btn-logout" style="background:#b23b3b;color:#fff;" id="idleLogoutBtn">දැන් ඉවත් වන්න</button>
+    </div>
+  </div>
+</div>
 
 <!-- ===================== LOGIN ===================== -->
 <div id="loginView">
@@ -1028,10 +1048,64 @@ onAuthStateChanged(auth, (user)=>{
     loginView.style.display = 'none';
     appView.style.display = 'block';
     document.getElementById('whoLabel').textContent = user.email;
+    startIdleWatch();
   }else{
     appView.style.display = 'none';
     loginView.style.display = 'flex';
+    stopIdleWatch();
   }
+});
+
+// ---------- idle / session timeout ----------
+const IDLE_LIMIT_MS = 15 * 60 * 1000;   // 15 min inactivity before warning
+const IDLE_WARN_MS  = 60 * 1000;        // 60 sec countdown before auto logout
+let idleTimer = null, idleWarnTimer = null, idleCountdownInt = null;
+const idleModal = document.getElementById('idleModal');
+const idleCountdownEl = document.getElementById('idleCountdown');
+const IDLE_EVENTS = ['mousemove','mousedown','keydown','scroll','touchstart','click'];
+
+function resetIdleTimer(){
+  if(idleModal.classList.contains('show')) return; // don't reset while warning is showing; user must respond
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(showIdleWarning, IDLE_LIMIT_MS);
+}
+function showIdleWarning(){
+  idleModal.classList.add('show');
+  let secondsLeft = IDLE_WARN_MS / 1000;
+  idleCountdownEl.textContent = secondsLeft;
+  clearInterval(idleCountdownInt);
+  idleCountdownInt = setInterval(()=>{
+    secondsLeft--;
+    idleCountdownEl.textContent = secondsLeft;
+    if(secondsLeft <= 0) clearInterval(idleCountdownInt);
+  }, 1000);
+  clearTimeout(idleWarnTimer);
+  idleWarnTimer = setTimeout(()=>{
+    hideIdleWarning();
+    signOut(auth);
+  }, IDLE_WARN_MS);
+}
+function hideIdleWarning(){
+  idleModal.classList.remove('show');
+  clearTimeout(idleWarnTimer);
+  clearInterval(idleCountdownInt);
+}
+function startIdleWatch(){
+  IDLE_EVENTS.forEach(evt => document.addEventListener(evt, resetIdleTimer, {passive:true}));
+  resetIdleTimer();
+}
+function stopIdleWatch(){
+  IDLE_EVENTS.forEach(evt => document.removeEventListener(evt, resetIdleTimer));
+  clearTimeout(idleTimer);
+  hideIdleWarning();
+}
+document.getElementById('idleStayBtn').addEventListener('click', ()=>{
+  hideIdleWarning();
+  resetIdleTimer();
+});
+document.getElementById('idleLogoutBtn').addEventListener('click', ()=>{
+  hideIdleWarning();
+  signOut(auth);
 });
 
 // ---------- tabs ----------
