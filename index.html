@@ -345,6 +345,12 @@ header,.header-brand,.header-brand > div{min-width:0;}
 .app-credit{max-width:1000px;margin:0 auto;padding:26px 16px 34px;border-top:1px solid var(--line);}
 .login-card .credit{margin-top:22px;padding-top:16px;border-top:1px solid var(--line);}
 .login-card .credit .contacts a{padding:5px 10px;font-size:.76rem;}
+/* ---- Role-based access ---- */
+body:not([data-role="admin"]) .admin-only{display:none !important;}
+body[data-role="classTeacher"] .hide-ct{display:none !important;}
+body[data-role="subjectTeacher"] .hide-subj{display:none !important;}
+#pendingView{display:none;min-height:100vh;align-items:center;justify-content:center;background:linear-gradient(150deg,var(--maroon-dark),var(--maroon));padding:20px;}
+select[multiple]{min-height:170px;}
 </style>
 </head>
 <body>
@@ -395,6 +401,17 @@ header,.header-brand,.header-brand > div{min-width:0;}
   </div>
 </div>
 
+<!-- ===================== NO ACCESS / PENDING ===================== -->
+<div id="pendingView">
+  <div class="login-card">
+    <h1>ප්‍රවේශය අවශ්‍යයි</h1>
+    <p class="sub" id="pendingMsg"></p>
+    <div class="dl"><span>Email</span><b id="pendingEmail"></b></div>
+    <div class="dl"><span>UID</span><b id="pendingUid" style="word-break:break-all;"></b></div>
+    <button class="btn-primary" id="pendingLogout" style="margin-top:18px;">ඉවත් වන්න (Logout)</button>
+  </div>
+</div>
+
 <!-- ===================== APP ===================== -->
 <div id="appView">
   <header>
@@ -417,6 +434,7 @@ header,.header-brand,.header-brand > div{min-width:0;}
     <button data-tab="students">සිසු ලේඛනය (Students)</button>
     <button data-tab="marks">ලකුණු හා ප්‍රතිඵල කළමනාකරණය (Marks &amp; Results)</button>
     <button data-tab="analysis">විෂය අනුව විශ්ලේෂණය (Subject Analysis)</button>
+    <button data-tab="users" class="admin-only">පරිශීලක පාලනය (Users &amp; Access)</button>
   </nav>
 
   <div class="main-col">
@@ -674,7 +692,7 @@ header,.header-brand,.header-brand > div{min-width:0;}
         </div>
         <div class="count" id="s_count"></div>
         <div class="table-scroll">
-          <table><thead><tr><th><input type="checkbox" id="s_selAll"></th><th>Adm. No</th><th>නම</th><th>ශ්‍රේණිය/පන්තිය</th><th>පියාගේ දුරකථනය</th><th>සම්බන්ධ</th><th>ක්‍රියා</th></tr></thead>
+          <table><thead><tr><th class="admin-only"><input type="checkbox" id="s_selAll"></th><th>Adm. No</th><th>නම</th><th>ශ්‍රේණිය/පන්තිය</th><th>පියාගේ දුරකථනය</th><th>සම්බන්ධ</th><th>ක්‍රියා</th></tr></thead>
           <tbody id="s_tbody"></tbody></table>
         </div>
         <div class="empty" id="s_empty" style="display:none;">තවම වාර්තා නොමැත</div>
@@ -828,6 +846,53 @@ header,.header-brand,.header-brand > div{min-width:0;}
       </div>
     </section>
 
+    <!-- ---------- USERS & ACCESS TAB (admin only) ---------- -->
+    <section class="tabpanel admin-only" id="tab-users">
+      <div class="card">
+        <h2 id="u_title">නව පරිශීලකයෙක් එක් කරන්න (Add User)</h2>
+        <form id="userForm">
+          <input type="hidden" id="u_uid">
+          <div class="grid">
+            <div class="f field"><label>Email *</label><input type="email" id="u_email" required></div>
+            <div class="f field" id="u_pwWrap"><label>මුරපදය * (Password, අවම අක්ෂර 6)</label><input type="text" id="u_password" autocomplete="new-password"></div>
+            <div class="f field"><label>නම (Name)</label><input id="u_name"></div>
+            <div class="f field"><label>භූමිකාව * (Role)</label>
+              <select id="u_role" required><option value="">-- තෝරන්න --</option>
+                <option value="admin">පරිපාලක (Admin)</option>
+                <option value="classTeacher">පන්ති භාර ගුරු (Class Teacher)</option>
+                <option value="subjectTeacher">විෂය ගුරු (Subject Teacher)</option></select></div>
+            <div id="u_classWrap" style="display:none;grid-column:1/-1;">
+              <div class="grid">
+                <div class="f field"><label>ශ්‍රේණිය (Grade)</label><select id="u_grade"></select></div>
+                <div class="f field"><label>පන්තිය (Class)</label><select id="u_class"></select></div>
+              </div>
+            </div>
+            <div id="u_subjWrap" class="f field span2" style="display:none;">
+              <label>උගන්වන විෂයයන් (Ctrl / ⌘ ඔබා කිහිපයක් තෝරන්න)</label>
+              <select id="u_subjects" multiple></select>
+              <label style="margin-top:8px;">වෙනත් විෂයයන් (කොමාවෙන් වෙන් කරන්න)</label>
+              <input id="u_subjectsExtra" placeholder="උදා: සංගීතය, ...">
+            </div>
+            <div class="f field span2"><label>සම්බන්ධ කාර්ය මණ්ඩල වාර්තාව (Staff record — ඔහුට/ඇයට පෙනෙන ගුරු තොරතුරු)</label><select id="u_staff"></select></div>
+            <div class="f field span2" id="u_existWrap"><label>දැනටමත් ලියාපදිංචි ගිණුමක් නම් UID (විකල්ප — තිබුණොත් නව ගිණුමක් සාදන්නේ නැත)</label><input id="u_existingUid"></div>
+            <div class="f field span2"><label style="display:flex;gap:8px;align-items:center;"><input type="checkbox" id="u_active" checked style="width:auto;"> සක්‍රීය (Active)</label></div>
+          </div>
+          <div class="btn-row">
+            <button type="button" class="btn-secondary" id="u_cancel">Cancel</button>
+            <button type="submit" class="btn-save" id="u_save">Save</button>
+          </div>
+        </form>
+      </div>
+      <div class="card">
+        <h2>පරිශීලකයින් (Users)</h2>
+        <div class="table-scroll">
+          <table><thead><tr><th>නම</th><th>Email</th><th>භූමිකාව</th><th>පන්තිය / විෂය</th><th>කාර්ය මණ්ඩල වාර්තාව</th><th>තත්ත්වය</th><th>ක්‍රියා</th></tr></thead>
+          <tbody id="u_tbody"></tbody></table>
+        </div>
+        <div class="empty" id="u_empty" style="display:none;">තවම පරිශීලකයින් නොමැත</div>
+      </div>
+    </section>
+
   </div>
   <footer class="app-credit">
     <div class="credit">
@@ -865,11 +930,11 @@ header,.header-brand,.header-brand > div{min-width:0;}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 import {
-  getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+  getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 import {
   getFirestore, collection, addDoc, setDoc, doc, deleteDoc,
-  onSnapshot, query, orderBy
+  onSnapshot, query, orderBy, where
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -884,6 +949,63 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+// ================= ACCESS CONTROL =================
+// Emails that are always Admin (also used to bootstrap the very first admin).
+// KEEP IN SYNC with the same list inside firestore.rules.
+const BOOTSTRAP_ADMINS = ['sudanchamalka@gmail.com'];
+const ROLE_LABEL = { admin:'පරිපාලක (Admin)', classTeacher:'පන්ති භාර ගුරු (Class Teacher)', subjectTeacher:'විෂය ගුරු (Subject Teacher)' };
+const TAB_ACCESS = {
+  admin:['teachers','students','marks','analysis','users'],
+  classTeacher:['teachers','students','marks','analysis'],
+  subjectTeacher:['teachers','marks']
+};
+let ME = null;
+const isAdmin = ()=> !!ME && ME.role === 'admin';
+const isCT    = ()=> !!ME && ME.role === 'classTeacher';
+const isSubj  = ()=> !!ME && ME.role === 'subjectTeacher';
+const hooks = {};
+
+// Firestore listeners are registered up-front but only started once the user's role is known,
+// and each role only subscribes to the documents it is allowed to read.
+const SUBS = [];
+function listen(key, factory, cb, err){ SUBS.push({ key, factory, cb, err, unsub:null }); }
+function stopAll(){ SUBS.forEach(s=>{ if(s.unsub){ s.unsub(); s.unsub = null; } }); }
+function startAll(){
+  stopAll();
+  SUBS.forEach(s=>{
+    if(s.key.startsWith('admin:') && !isAdmin()) return;
+    try{ s.unsub = onSnapshot(s.factory(), s.cb, s.err); }catch(e){ console.error(e); }
+  });
+}
+function sortRecs(arr, f){ return arr.sort((a,b)=> String(a[f]||'').localeCompare(String(b[f]||''))); }
+function scopedQuery(col, sortField){
+  const c = collection(db, col);
+  if(isAdmin()) return query(c, orderBy(sortField));
+  if(col === 'teachers') return query(c, where('ownerUid','==', ME.uid));
+  if(isCT()) return query(c, where('gradeNumber','==', String(ME.gradeNumber||'')), where('className','==', ME.className||''));
+  return query(c);   // subject teacher: students + marks (needed to enter marks)
+}
+function applyRole(){
+  const $ = id => document.getElementById(id);
+  document.body.dataset.role = ME.role;
+  const allowed = TAB_ACCESS[ME.role] || [];
+  document.querySelectorAll('nav.tabs button').forEach(b=>{ b.style.display = allowed.includes(b.dataset.tab) ? '' : 'none'; });
+  ['t-panel-archive','s-panel-archive'].forEach(id=>{
+    const b = document.querySelector(`[data-subtab="${id}"]`); if(b) b.style.display = isAdmin() ? '' : 'none';
+  });
+  $('studentForm').closest('.card').classList.add('admin-only');
+  $('s_promote').classList.add('admin-only');
+  $('marksForm').closest('.card').classList.add('hide-ct');
+  $('m_addSubject').classList.add('admin-only');
+  $('m_remarks').closest('.f').classList.add('hide-subj');
+  $('whoLabel').textContent = (ME.name ? ME.name + ' — ' : '') + ME.email + ' · ' + ROLE_LABEL[ME.role];
+  const cur = document.querySelector('nav.tabs button.active');
+  if(!cur || cur.style.display === 'none'){
+    const first = [...document.querySelectorAll('nav.tabs button')].find(b => b.style.display !== 'none');
+    if(first) first.click();
+  }
+}
 
 // ---------- helpers ----------
 function showStatus(msg, isError){
@@ -1040,17 +1162,51 @@ document.getElementById('showPw').addEventListener('change', e=>{
 
 document.getElementById('logoutBtn').addEventListener('click', ()=> signOut(auth));
 
+const pendingView = document.getElementById('pendingView');
+document.getElementById('pendingLogout').addEventListener('click', ()=> signOut(auth));
+function showPending(user, msg){
+  appView.style.display = 'none'; loginView.style.display = 'none'; pendingView.style.display = 'flex';
+  document.getElementById('pendingMsg').textContent = msg;
+  document.getElementById('pendingEmail').textContent = user.email || '';
+  document.getElementById('pendingUid').textContent = user.uid;
+  stopIdleWatch();
+}
+let hadUser = false, profUnsub = null, roleSig = '';
 onAuthStateChanged(auth, (user)=>{
-  if(user){
-    loginView.style.display = 'none';
-    appView.style.display = 'block';
-    document.getElementById('whoLabel').textContent = user.email;
-    startIdleWatch();
-  }else{
-    appView.style.display = 'none';
-    loginView.style.display = 'flex';
+  if(profUnsub){ profUnsub(); profUnsub = null; }
+  if(!user){
+    if(hadUser){ location.reload(); return; }   // clean slate after logout
+    appView.style.display = 'none'; pendingView.style.display = 'none'; loginView.style.display = 'flex';
     stopIdleWatch();
+    return;
   }
+  hadUser = true;
+  loginView.style.display = 'none';
+  profUnsub = onSnapshot(doc(db, 'users', user.uid), (snap)=>{
+    const d = snap.exists() ? snap.data() : null;
+    const boot = BOOTSTRAP_ADMINS.includes((user.email || '').toLowerCase());
+    if(boot){
+      ME = { ...(d || {}), uid:user.uid, email:user.email, role:'admin', active:true };
+      if(!d) setDoc(doc(db,'users',user.uid), { email:user.email, name:'', role:'admin', active:true }, { merge:true }).catch(()=>{});
+    }else if(d && d.active !== false && TAB_ACCESS[d.role]){
+      ME = { ...d, uid:user.uid, email:user.email };
+    }else{
+      ME = null;
+    }
+    if(!ME){
+      stopAll(); roleSig = '';
+      showPending(user, d && d.active === false
+        ? 'ඔබගේ ගිණුම අක්‍රීය කර ඇත. පරිපාලක අමතන්න. (Your account is disabled.)'
+        : 'ඔබට තවම භූමිකාවක් ලබා දී නැත. පහත UID එක පරිපාලකට දී ප්‍රවේශය ඉල්ලන්න. (No role assigned yet.)');
+      return;
+    }
+    pendingView.style.display = 'none';
+    appView.style.display = 'block';
+    applyRole();
+    const sig = [ME.role, ME.gradeNumber, ME.className].join('|');
+    if(sig !== roleSig){ roleSig = sig; startAll(); if(hooks.reset) hooks.reset(); }
+    startIdleWatch();
+  }, (err)=> showPending(user, 'Error: ' + err.message));
 });
 
 // ---------- idle / session timeout ----------
@@ -1162,14 +1318,15 @@ function wireCollection(cfg){
       (filtered.length !== records.length ? ` — ${filtered.length} matching` : '');
   }
 
-  onSnapshot(query(collection(db, colName), orderBy(sortField)), (snap)=>{
-    records = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  listen('col:' + colName, ()=> scopedQuery(colName, sortField), (snap)=>{
+    records = sortRecs(snap.docs.map(d => ({ id: d.id, ...d.data() })), sortField);
     render(searchEl.value);
   }, (err)=> showStatus('දත්ත ලබාගැනීමේ දෝෂයක්: ' + err.message, true));
 
   formEl.addEventListener('submit', async (e)=>{
     e.preventDefault();
     const docId = document.getElementById(prefix + '_docId').value;
+    if(cfg.beforeSave && cfg.beforeSave(docId, records) === false) return;
     const rec = {};
     fieldIds.forEach(fid => {
       const el = document.getElementById(prefix + '_' + fid);
@@ -1179,7 +1336,7 @@ function wireCollection(cfg){
       if(docId){
         await setDoc(doc(db, colName, docId), rec, { merge: true });
       }else{
-        await addDoc(collection(db, colName), rec);
+        await addDoc(collection(db, colName), Object.assign(rec, cfg.extraSave ? cfg.extraSave() : {}));
       }
       showStatus('සුරැකින ලදී (Saved)');
       resetForm();
@@ -1194,6 +1351,7 @@ function wireCollection(cfg){
     if(editId){
       const rec = records.find(r=>r.id === editId);
       if(!rec) return;
+      if(cfg.canEdit && !cfg.canEdit(rec)){ showStatus('ඔබට මෙය සංස්කරණය කිරීමට අවසර නැත', true); return; }
       document.getElementById(prefix + '_docId').value = rec.id;
       fieldIds.forEach(fid=>{
         const el = document.getElementById(prefix + '_' + fid);
@@ -1207,6 +1365,7 @@ function wireCollection(cfg){
       window.scrollTo({top:0, behavior:'smooth'});
     }
     if(delId){
+      if(cfg.canDelete && !cfg.canDelete()){ showStatus('ඔබට මකා දැමීමට අවසර නැත', true); return; }
       if(confirm('මෙම වාර්තාව මකා දමන්නද?')){
         try{ await deleteDoc(doc(db, colName, delId)); showStatus('මකා දමන ලදී'); }
         catch(err){ showStatus('මකාදැමීමේ දෝෂයක්: ' + err.message, true); }
@@ -1272,9 +1431,17 @@ const teachersApi = wireCollection({
     tr.innerHTML = `<td>${escapeHtml(r.nic)}</td><td>${escapeHtml(r.fullName)}</td>
       <td>${escapeHtml(r.position)}</td><td>${escapeHtml(r.phone)}</td><td>${escapeHtml(r.bank)}</td>
       <td>${contactLinks(r.phone, r.whatsapp)}</td>
-      <td><button class="btn-edit" data-view="${r.id}">View</button><button class="btn-edit" data-edit="${r.id}">Edit</button><button class="btn-secondary" data-retire="${r.id}">Retire/Transfer</button><button class="btn-del" data-del="${r.id}">Delete</button></td>`;
+      <td><button class="btn-edit" data-view="${r.id}">View</button><button class="btn-edit" data-edit="${r.id}">Edit</button>${isAdmin() ? `<button class="btn-secondary" data-retire="${r.id}">Retire/Transfer</button><button class="btn-del" data-del="${r.id}">Delete</button>` : ''}</td>`;
     return tr;
   },
+  beforeSave: (docId, recs)=>{
+    if(isAdmin()) return true;
+    if(!docId && recs.length){ showStatus('ඔබගේ තොරතුරු දැනටමත් ඇත — Edit භාවිතා කරන්න', true); return false; }
+    return true;
+  },
+  extraSave: ()=> isAdmin() ? {} : { ownerUid: ME.uid },
+  canEdit: (rec)=> isAdmin() || rec.ownerUid === ME.uid,
+  canDelete: ()=> isAdmin(),
   onReset: ()=>{ resetPrevSchoolsUI(); },
   onEdit: (rec)=>{ populatePrevSchoolsUI(rec.prevSchoolsText || ''); }
 });
@@ -1365,6 +1532,9 @@ const studentsApi = wireCollection({
   defaultTitle: 'නව සිසුවෙකු ලියාපදිංචි කරන්න (Add Student)',
   editTitle: 'සිසුවාගේ තොරතුරු සංස්කරණය (Edit Student)',
   labels: studentLabels,
+  beforeSave: ()=>{ if(isAdmin()) return true; showStatus('ඔබට සිසු දත්ත වෙනස් කිරීමට අවසර නැත', true); return false; },
+  canEdit: ()=> isAdmin(),
+  canDelete: ()=> isAdmin(),
   extraFilter: (r)=>{
     const g = document.getElementById('s_fGrade').value, c = document.getElementById('s_fClass').value;
     return (!g || String(r.gradeNumber) === g) && (!c || r.className === c);
@@ -1383,10 +1553,10 @@ const studentsApi = wireCollection({
   renderRow: (r)=>{
     const tr = document.createElement('tr');
     const studentContactPhone = r.contactPhone || r.fatherPhone || r.motherPhone;
-    tr.innerHTML = `<td><input type="checkbox" data-sel="${r.id}"></td><td>${escapeHtml(r.admissionNo)}</td><td>${escapeHtml(r.childNameSinhala)}</td>
+    tr.innerHTML = `<td class="admin-only"><input type="checkbox" data-sel="${r.id}"></td><td>${escapeHtml(r.admissionNo)}</td><td>${escapeHtml(r.childNameSinhala)}</td>
       <td>${escapeHtml(r.gradeNumber)} ${escapeHtml(r.className)}</td><td>${escapeHtml(r.fatherPhone)}</td>
       <td>${contactLinks(studentContactPhone, studentContactPhone)}</td>
-      <td><button class="btn-edit" data-view="${r.id}">View</button><button class="btn-edit" data-edit="${r.id}">Edit</button><button class="btn-secondary" data-transfer="${r.id}">Transfer</button><button class="btn-del" data-del="${r.id}">Delete</button></td>`;
+      <td><button class="btn-edit" data-view="${r.id}">View</button>${isAdmin() ? `<button class="btn-edit" data-edit="${r.id}">Edit</button><button class="btn-secondary" data-transfer="${r.id}">Transfer</button><button class="btn-del" data-del="${r.id}">Delete</button>` : ''}</td>`;
     return tr;
   }
 });
@@ -1500,6 +1670,7 @@ const studentsApi = wireCollection({
 
   // promote selected students (manual, once a year)
   $('s_promote').addEventListener('click', async ()=>{
+    if(!isAdmin()) return;
     const ids = [...$('s_tbody').querySelectorAll('input[data-sel]:checked')].map(c => c.dataset.sel);
     const recs = studentsApi.getRecords().filter(r => ids.includes(r.id));
     if(!recs.length){ showStatus('උසස් කිරීමට සිසුන් තෝරන්න (tick students first)', true); return; }
@@ -1661,7 +1832,7 @@ const studentsApi = wireCollection({
       const rec = studentsApi.getRecords().find(r => r.id === viewId);
       if(rec) showDetail(rec, studentFieldIds, studentLabels);
     }
-    if(trId){
+    if(trId && isAdmin()){
       const rec = studentsApi.getRecords().find(r => r.id === trId);
       if(!rec) return;
       const school = prompt('මාරු වන පාසල / හේතුව (School / reason):');
@@ -1692,7 +1863,7 @@ const studentsApi = wireCollection({
     });
     $('a_count').textContent = `මුළු වාර්තා ගණන: ${arch.length}` + (archVisible.length !== arch.length ? ` — ${archVisible.length} matching` : '');
   }
-  onSnapshot(query(collection(db, ARCHIVE), orderBy('childNameSinhala')), snap=>{
+  listen('admin:sarch', ()=> query(collection(db, ARCHIVE), orderBy('childNameSinhala')), snap=>{
     arch = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderArchive();
   }, err => showStatus('Archive දත්ත දෝෂයක්: ' + err.message, true));
   $('a_search').addEventListener('input', renderArchive);
@@ -1734,7 +1905,7 @@ const studentsApi = wireCollection({
       const rec = teachersApi.getRecords().find(r => r.id === viewId);
       if(rec) showDetail(rec, teacherFieldIds, teacherLabels, 'teacher');
     }
-    if(retId){
+    if(retId && isAdmin()){
       const rec = teachersApi.getRecords().find(r => r.id === retId);
       if(!rec) return;
       const statusIn = prompt('තත්ත්වය තෝරන්න — "Retired" (විශ්‍රාම) හෝ "Transferred" (මාරු) ලෙස ටයිප් කරන්න:', 'Retired');
@@ -1767,7 +1938,7 @@ const studentsApi = wireCollection({
     });
     $('ta_count').textContent = `මුළු වාර්තා ගණන: ${staffArch.length}` + (staffArchVisible.length !== staffArch.length ? ` — ${staffArchVisible.length} matching` : '');
   }
-  onSnapshot(query(collection(db, STAFF_ARCHIVE), orderBy('fullName')), snap=>{
+  listen('admin:tarch', ()=> query(collection(db, STAFF_ARCHIVE), orderBy('fullName')), snap=>{
     staffArch = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderStaffArchive();
   }, err => showStatus('Staff Archive දත්ත දෝෂයක්: ' + err.message, true));
   $('ta_search').addEventListener('input', renderStaffArchive);
@@ -1831,6 +2002,10 @@ const studentsApi = wireCollection({
       'ගෘහ ආර්ථික විද්‍යාව', 'සන්නිවේදනය හා මාධ්‍ය අධ්‍යයනය']
   };
 
+  window.ALL_SUBJECTS = [...new Set([].concat(SUBJECTS_G6_9, SUBJECTS_G10_11_CORE, SUBJECTS_G12_13,
+    ['මව්බස','පරිසරය','ගණිතය','බුද්ධ ධර්මය','ඉංග්‍රීසි','දෙමළ'],
+    Object.values(SUBJECT_CATEGORY_OPTIONS).flat()))].filter(s => !SUBJECT_CATEGORY_OPTIONS[s]);
+
   // For grade 10/11, the 3 elective rows use the category names themselves (පළමු/දෙවන/තෙවන කාණ්ඩය) so the
   // sub-subject dropdown renders; the student's own saved sub-subject choice (from the Students tab) is
   // passed along as the pre-selected value for each row.
@@ -1858,6 +2033,15 @@ const studentsApi = wireCollection({
   }
 
   let marksRecords = [], marksVisible = [];
+  // Subject teachers only ever see their own subjects' marks (no totals / averages / ranks).
+  function roleView(r){
+    if(!isSubj()) return r;
+    const mine = new Set(ME.subjects || []);
+    const subs = (r.subjects || []).filter(s => mine.has(s.name));
+    return { ...r, subjects: subs,
+      subjectsText: subs.map(s => `${s.name}: ${(s.marks !== null && s.marks !== undefined) ? s.marks : '-'}`).join(', '),
+      totalMarks:'', average:'', grade:'', rankText:'' };
+  }
   reportSources.marks = { fieldIds: marksFieldIds, labels: marksLabels, rows: ()=>marksVisible, title: 'ලකුණු සහ ප්‍රතිඵල වාර්තාව (Marks & Results Report)', file: 'marks_report' };
 
   function refreshStudentDatalist(){
@@ -1882,7 +2066,7 @@ const studentsApi = wireCollection({
       $('m_pickedInfo').textContent = `තෝරාගත්: ${rec.childNameSinhala} — ${rec.admissionNo} (ශ්‍රේණිය ${rec.gradeNumber||''} ${rec.className||''})`;
       // Only auto-fill subjects for a brand-new record, and only when the student actually changed
       // (so re-selecting the same student doesn't wipe marks already typed in).
-      if(changedStudent && !$('m_docId').value){
+      if(isSubj()){ loadSubjectRows(); } else if(changedStudent && !$('m_docId').value){
         $('m_subjectsBody').innerHTML = '';
         const defaults = defaultSubjectsForStudent(rec);
         if(defaults && defaults.length) defaults.forEach(d => addSubjectRow(d.name, '', d.sub));
@@ -1895,8 +2079,9 @@ const studentsApi = wireCollection({
   }
   $('m_studentPick').addEventListener('input', matchStudentFromPick);
   $('m_studentPick').addEventListener('change', matchStudentFromPick);
+  ['m_year','m_term'].forEach(id => $(id).addEventListener('change', ()=>{ if(isSubj() && $('m_studentId').value) loadSubjectRows(); }));
 
-  function addSubjectRow(name, marks, subValue){
+  function addSubjectRow(name, marks, subValue, lock){
     const row = document.createElement('div');
     row.className = 'subject-row';
     row.innerHTML = `<input class="m-subj-name" list="m_subjectSuggestions" placeholder="විෂය නම">
@@ -1908,11 +2093,12 @@ const studentsApi = wireCollection({
     nameEl.value = name || '';
     row.querySelector('.m-subj-marks').value = (marks === undefined || marks === null) ? '' : marks;
     row.querySelector('.btn-del').addEventListener('click', ()=> row.remove());
+    if(lock){ nameEl.readOnly = true; row.querySelector('.btn-del').style.display = 'none'; }
 
     // If the subject name matches a category (aesthetic education, or a grade 10-11 elective
     // category), show a dropdown of its specific sub-subjects instead of leaving it free text.
     function renderSubSelect(preselect){
-      const opts = SUBJECT_CATEGORY_OPTIONS[nameEl.value.trim()];
+      const opts = lock ? null : SUBJECT_CATEGORY_OPTIONS[nameEl.value.trim()];
       subWrap.innerHTML = '';
       if(!opts) return;
       const sel = document.createElement('select');
@@ -1929,16 +2115,31 @@ const studentsApi = wireCollection({
   }
   $('m_addSubject').addEventListener('click', ()=> addSubjectRow());
 
+  // Subject teacher: one locked row per assigned subject, pre-filled from the student's existing
+  // record for that year/term (if any) so only their own subjects can be entered or changed.
+  function loadSubjectRows(){
+    if(!isSubj()) return;
+    const sid = $('m_studentId').value, y = $('m_year').value.trim(), t = $('m_term').value;
+    const ex = (sid && y && t) ? marksRecords.find(r => r.studentId === sid && r.year === y && r.term === t) : null;
+    $('m_docId').value = ex ? ex.id : '';
+    $('m_subjectsBody').innerHTML = '';
+    (ME.subjects || []).forEach(n => {
+      const s = ex && (ex.subjects || []).find(x => x.name === n);
+      addSubjectRow(n, s ? s.marks : '', '', true);
+    });
+  }
+
   function resetMarksForm(){
     $('marksForm').reset();
     ['m_docId','m_studentId','m_admissionNo','m_childNameSinhala','m_gradeNumber','m_className'].forEach(id => $(id).value = '');
     $('m_pickedInfo').textContent = '';
     $('m_subjectsBody').innerHTML = '';
-    for(let i = 0; i < 5; i++) addSubjectRow();
+    if(isSubj()) loadSubjectRows(); else for(let i = 0; i < 5; i++) addSubjectRow();
     $('marksFormTitle').textContent = 'නව ලකුණු වාර්තාවක් එක් කරන්න (Add Marks Record)';
     $('m_save').textContent = 'Save';
   }
   resetMarksForm();
+  hooks.reset = resetMarksForm;
 
   function refreshSubjectSuggestions(){
     const names = new Set();
@@ -1975,7 +2176,7 @@ const studentsApi = wireCollection({
       if(c && r.className !== c) return false;
       if(q && !((r.childNameSinhala||'').toLowerCase().includes(q) || (r.admissionNo||'').toLowerCase().includes(q))) return false;
       return true;
-    });
+    }).map(roleView);
     $('m_tbody').innerHTML = '';
     $('m_empty').style.display = marksVisible.length ? 'none' : 'block';
     marksVisible.forEach(r=>{
@@ -1983,14 +2184,14 @@ const studentsApi = wireCollection({
       tr.innerHTML = `<td data-label="Adm. No">${escapeHtml(r.admissionNo)}</td><td data-label="නම">${escapeHtml(r.childNameSinhala)}</td>
         <td data-label="ශ්‍රේණිය/පන්තිය">${escapeHtml(r.gradeNumber)} ${escapeHtml(r.className)}</td><td data-label="වර්ෂය">${escapeHtml(r.year)}</td><td data-label="වාරය">${escapeHtml(r.term)}</td>
         <td data-label="මුළු ලකුණු">${escapeHtml(r.totalMarks)}</td><td data-label="සාමාන්‍යය">${escapeHtml(r.average)}</td><td data-label="ශ්‍රේණිය">${escapeHtml(r.grade)}</td><td data-label="ස්ථානය">${escapeHtml(r.rankText||'-')}</td>
-        <td><button class="btn-edit" data-mview="${r.id}">View</button><button class="btn-edit" data-medit="${r.id}">Edit</button><button class="btn-export pdf" data-mpdf="${r.id}">PDF</button><button class="btn-del" data-mdel="${r.id}">Delete</button></td>`;
+        <td><button class="btn-edit" data-mview="${r.id}">View</button>${(isAdmin() || isSubj()) ? `<button class="btn-edit" data-medit="${r.id}">Edit</button>` : ''}<button class="btn-export pdf" data-mpdf="${r.id}">PDF</button>${isAdmin() ? `<button class="btn-del" data-mdel="${r.id}">Delete</button>` : ''}</td>`;
       $('m_tbody').appendChild(tr);
     });
     $('m_count').textContent = `මුළු වාර්තා ගණන: ${marksRecords.length}` + (marksVisible.length !== marksRecords.length ? ` — ${marksVisible.length} matching` : '');
   }
 
-  onSnapshot(query(collection(db, MARKS), orderBy('childNameSinhala')), snap=>{
-    marksRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  listen('marks', ()=> scopedQuery(MARKS, 'childNameSinhala'), snap=>{
+    marksRecords = sortRecs(snap.docs.map(d => ({ id: d.id, ...d.data() })), 'childNameSinhala');
     computeRanks(marksRecords);
     refreshSubjectSuggestions();
     refreshYearFilterOptions();
@@ -2005,8 +2206,9 @@ const studentsApi = wireCollection({
 
   $('marksForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
+    if(!(isAdmin() || isSubj())){ showStatus('ඔබට ලකුණු ඇතුළත් කිරීමට අවසර නැත', true); return; }
     if(!$('m_studentId').value){ showStatus('කරුණාකර ලැයිස්තුවෙන් වලංගු සිසුවෙකු තෝරන්න', true); return; }
-    const subjects = [...document.querySelectorAll('#m_subjectsBody .subject-row')].map(row=>{
+    let subjects = [...document.querySelectorAll('#m_subjectsBody .subject-row')].map(row=>{
       const subEl = row.querySelector('.m-subj-sub');
       // When a sub-subject was picked (aesthetic / elective category rows), save that specific
       // subject name; otherwise fall back to whatever was typed in the name field.
@@ -2015,6 +2217,14 @@ const studentsApi = wireCollection({
       return { name, marks: mv === '' ? null : parseFloat(mv) };
     }).filter(s => s.name);
     if(!subjects.length){ showStatus('අවම වශයෙන් විෂයයක් සහ ලකුණු ඇතුළත් කරන්න', true); return; }
+    // Subject teacher: keep every other subject exactly as stored, replace only own subjects.
+    let stExisting = null;
+    if(isSubj()){
+      const mine = new Set(ME.subjects || []);
+      stExisting = marksRecords.find(r => r.studentId === $('m_studentId').value && r.year === $('m_year').value.trim() && r.term === $('m_term').value);
+      subjects = ((stExisting && stExisting.subjects) || []).filter(s => !mine.has(s.name))
+        .concat(subjects.filter(s => mine.has(s.name)));
+    }
     const validMarks = subjects.filter(s => s.marks !== null && !isNaN(s.marks));
     const total = validMarks.reduce((a,s) => a + s.marks, 0);
     const avg = validMarks.length ? Math.round((total / validMarks.length) * 100) / 100 : 0;
@@ -2032,9 +2242,9 @@ const studentsApi = wireCollection({
       totalMarks: total,
       average: avg,
       grade: gradeFor(avg),
-      remarks: $('m_remarks').value.trim()
+      ...(isSubj() ? {} : { remarks: $('m_remarks').value.trim() })
     };
-    const docId = $('m_docId').value;
+    const docId = isSubj() ? (stExisting ? stExisting.id : '') : $('m_docId').value;
     try{
       if(docId) await setDoc(doc(db, MARKS, docId), rec, { merge: true });
       else await addDoc(collection(db, MARKS), rec);
@@ -2057,7 +2267,7 @@ const studentsApi = wireCollection({
     $('m_term').value = rec.term || '';
     $('m_remarks').value = rec.remarks || '';
     $('m_subjectsBody').innerHTML = '';
-    (rec.subjects && rec.subjects.length ? rec.subjects : [{}]).forEach(s => addSubjectRow(s.name, s.marks));
+    if(isSubj()) loadSubjectRows(); else (rec.subjects && rec.subjects.length ? rec.subjects : [{}]).forEach(s => addSubjectRow(s.name, s.marks));
     $('marksFormTitle').textContent = 'ලකුණු වාර්තාව සංස්කරණය (Edit Marks Record)';
     $('m_save').textContent = 'Update';
     window.scrollTo({top:0, behavior:'smooth'});
@@ -2111,10 +2321,10 @@ const studentsApi = wireCollection({
   $('m_tbody').addEventListener('click', async (e)=>{
     const v = e.target.getAttribute('data-mview'), ed = e.target.getAttribute('data-medit'),
           pd = e.target.getAttribute('data-mpdf'), del = e.target.getAttribute('data-mdel');
-    if(v){ const rec = marksRecords.find(r => r.id === v); if(rec) showDetail(rec, marksFieldIds, marksLabels, 'marks'); }
-    if(ed){ const rec = marksRecords.find(r => r.id === ed); if(rec) loadMarksIntoForm(rec); }
-    if(pd){ const rec = marksRecords.find(r => r.id === pd); if(rec) resultPdf(rec); }
-    if(del){
+    if(v){ const rec = marksRecords.find(r => r.id === v); if(rec) showDetail(roleView(rec), marksFieldIds, marksLabels, 'marks'); }
+    if(ed && (isAdmin() || isSubj())){ const rec = marksRecords.find(r => r.id === ed); if(rec) loadMarksIntoForm(rec); }
+    if(pd){ const rec = marksRecords.find(r => r.id === pd); if(rec) resultPdf(roleView(rec)); }
+    if(del && isAdmin()){
       if(confirm('මෙම ලකුණු වාර්තාව මකා දමන්නද?')){
         try{ await deleteDoc(doc(db, MARKS, del)); showStatus('මකා දමන ලදී'); }
         catch(err){ showStatus('මකාදැමීමේ දෝෂයක්: ' + err.message, true); }
@@ -2856,6 +3066,130 @@ function filterRows(gf, src, g, c){
     btn.addEventListener('click',()=> openSheet(key, sources[key].src()));
     csvBtn.parentElement.insertBefore(btn, csvBtn);
   });
+})();
+
+// ================= Users & Access management (admin only) =================
+(function(){
+  const $ = id => document.getElementById(id);
+  // A second Firebase app instance lets the admin create accounts without being logged out.
+  const secAuth = getAuth(initializeApp(firebaseConfig, 'secondary'));
+  let users = [];
+  const form = $('userForm'), gradeSel = $('u_grade'), classSel = $('u_class');
+  gradeSel.innerHTML = '<option value="">--</option>' + Array.from({length:13}, (_,i)=>`<option>${i+1}</option>`).join('');
+
+  function buildClasses(keep){
+    const g = parseInt(gradeSel.value, 10);
+    const opts = !g ? [] : (g <= 11 ? ['A','B'] : ['කලා අංශය']);
+    classSel.innerHTML = '<option value="">--</option>' + opts.map(o=>`<option>${o}</option>`).join('');
+    classSel.value = keep || '';
+  }
+  gradeSel.addEventListener('change', ()=> buildClasses());
+  function syncRole(){
+    const r = $('u_role').value;
+    $('u_classWrap').style.display = r === 'classTeacher' ? '' : 'none';
+    $('u_subjWrap').style.display = r === 'subjectTeacher' ? '' : 'none';
+  }
+  $('u_role').addEventListener('change', syncRole);
+
+  function fillOptions(){
+    const keep = new Set([...$('u_subjects').selectedOptions].map(o=>o.value));
+    $('u_subjects').innerHTML = (window.ALL_SUBJECTS || []).map(s=>`<option${keep.has(s) ? ' selected' : ''}>${escapeHtml(s)}</option>`).join('');
+    const keepS = $('u_staff').value;
+    $('u_staff').innerHTML = '<option value="">-- සම්බන්ධ කර නැත --</option>' +
+      teachersApi.getRecords().map(t=>`<option value="${t.id}">${escapeHtml(t.fullName)} (${escapeHtml(t.nic)})</option>`).join('');
+    $('u_staff').value = keepS;
+  }
+  function resetForm(){
+    form.reset(); $('u_uid').value = '';
+    $('u_title').textContent = 'නව පරිශීලකයෙක් එක් කරන්න (Add User)'; $('u_save').textContent = 'Save';
+    ['u_email','u_password','u_existingUid'].forEach(id => $(id).disabled = false);
+    $('u_pwWrap').style.display = ''; $('u_existWrap').style.display = '';
+    buildClasses(); syncRole(); fillOptions(); $('u_active').checked = true;
+  }
+  const scopeText = u => u.role === 'classTeacher' ? `ශ්‍රේණිය ${u.gradeNumber || '-'} ${u.className || ''}`
+    : u.role === 'subjectTeacher' ? (u.subjects || []).join(', ') : '—';
+
+  function renderUsers(){
+    const tb = $('u_tbody'); tb.innerHTML = '';
+    $('u_empty').style.display = users.length ? 'none' : 'block';
+    const staffAll = teachersApi.getRecords();
+    users.forEach(u=>{
+      const staff = staffAll.find(t => t.ownerUid === u.id);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${escapeHtml(u.name || '')}</td><td>${escapeHtml(u.email || '')}</td><td>${escapeHtml(ROLE_LABEL[u.role] || u.role || '')}</td>
+        <td>${escapeHtml(scopeText(u))}</td><td>${escapeHtml(staff ? staff.fullName : '—')}</td><td>${u.active === false ? 'අක්‍රීය' : 'සක්‍රීය'}</td>
+        <td><button class="btn-edit" data-uedit="${u.id}">Edit</button><button class="btn-secondary" data-utoggle="${u.id}">${u.active === false ? 'Activate' : 'Deactivate'}</button></td>`;
+      tb.appendChild(tr);
+    });
+  }
+
+  listen('admin:users', ()=> query(collection(db, 'users')), snap=>{
+    users = sortRecs(snap.docs.map(d => ({ id: d.id, ...d.data() })), 'name'); renderUsers();
+  }, err => showStatus('පරිශීලක දත්ත දෝෂයක්: ' + err.message, true));
+
+  $('u_tbody').addEventListener('click', async (e)=>{
+    const ed = e.target.getAttribute('data-uedit'), tg = e.target.getAttribute('data-utoggle');
+    if(ed){
+      const u = users.find(x => x.id === ed); if(!u) return;
+      fillOptions();
+      $('u_uid').value = u.id; $('u_email').value = u.email || ''; $('u_name').value = u.name || ''; $('u_role').value = u.role || '';
+      gradeSel.value = u.gradeNumber || ''; buildClasses(u.className); syncRole();
+      const set = new Set(u.subjects || []);
+      [...$('u_subjects').options].forEach(o => o.selected = set.has(o.value));
+      $('u_subjectsExtra').value = (u.subjects || []).filter(s => !(window.ALL_SUBJECTS || []).includes(s)).join(', ');
+      const st = teachersApi.getRecords().find(t => t.ownerUid === u.id);
+      $('u_staff').value = st ? st.id : '';
+      $('u_active').checked = u.active !== false;
+      ['u_email','u_password','u_existingUid'].forEach(id => $(id).disabled = true);
+      $('u_pwWrap').style.display = 'none'; $('u_existWrap').style.display = 'none';
+      $('u_title').textContent = 'පරිශීලකයා සංස්කරණය (Edit User)'; $('u_save').textContent = 'Update';
+      window.scrollTo({ top:0, behavior:'smooth' });
+    }
+    if(tg){
+      const u = users.find(x => x.id === tg); if(!u) return;
+      if(u.id === ME.uid){ showStatus('ඔබගේම ගිණුම අක්‍රීය කළ නොහැක', true); return; }
+      try{ await setDoc(doc(db, 'users', u.id), { active: u.active === false }, { merge:true }); showStatus('යාවත්කාලීන කරන ලදී'); }
+      catch(err){ showStatus('දෝෂයක්: ' + err.message, true); }
+    }
+  });
+
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    if(!isAdmin()) return;
+    const role = $('u_role').value, editing = $('u_uid').value, active = $('u_active').checked;
+    const email = $('u_email').value.trim().toLowerCase(), name = $('u_name').value.trim();
+    const extra = $('u_subjectsExtra').value.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
+    const subjects = role === 'subjectTeacher' ? [...new Set([...[...$('u_subjects').selectedOptions].map(o => o.value), ...extra])] : [];
+    const gradeNumber = role === 'classTeacher' ? gradeSel.value : '', className = role === 'classTeacher' ? classSel.value : '';
+    if(role === 'classTeacher' && (!gradeNumber || !className)){ showStatus('ශ්‍රේණිය සහ පන්තිය තෝරන්න', true); return; }
+    if(role === 'subjectTeacher' && !subjects.length){ showStatus('අවම වශයෙන් එක් විෂයක් තෝරන්න', true); return; }
+    if(editing === ME.uid && (role !== 'admin' || !active)){ showStatus('ඔබගේම පරිපාලක භූමිකාව වෙනස් කළ නොහැක', true); return; }
+    let uid = editing;
+    try{
+      if(!uid){
+        uid = $('u_existingUid').value.trim();
+        if(!uid){
+          const pw = $('u_password').value;
+          if(pw.length < 6){ showStatus('මුරපදය අවම අක්ෂර 6ක් විය යුතුය', true); return; }
+          const cred = await createUserWithEmailAndPassword(secAuth, email, pw);
+          uid = cred.user.uid; await signOut(secAuth);
+        }
+      }
+      await setDoc(doc(db, 'users', uid), { email, name, role, gradeNumber, className, subjects, active }, { merge:true });
+      const staffId = $('u_staff').value;
+      for(const t of teachersApi.getRecords().filter(t => t.ownerUid === uid && t.id !== staffId))
+        await setDoc(doc(db, 'teachers', t.id), { ownerUid:'' }, { merge:true });
+      if(staffId) await setDoc(doc(db, 'teachers', staffId), { ownerUid: uid }, { merge:true });
+      showStatus('සුරැකින ලදී (Saved)'); resetForm();
+    }catch(err){
+      showStatus(err.code === 'auth/email-already-in-use'
+        ? 'මෙම Email දැනටමත් ලියාපදිංචිය — එහි UID එක "Existing UID" ක්ෂේත්‍රයට ඇතුළත් කරන්න'
+        : 'දෝෂයක්: ' + err.message, true);
+    }
+  });
+  $('u_cancel').addEventListener('click', resetForm);
+  document.querySelector('nav.tabs button[data-tab="users"]').addEventListener('click', ()=>{ fillOptions(); renderUsers(); });
+  resetForm();
 })();
 </script>
 <script>
