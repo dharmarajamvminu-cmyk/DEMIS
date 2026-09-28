@@ -302,6 +302,21 @@ header,.header-brand,.header-brand > div{min-width:0;}
   table.mob-card td:has(> a.btn-edit) a.btn-edit{margin:0;padding:10px 18px;border-radius:10px;text-align:center;}
 }
 
+/* ---- Custom report builder ---- */
+.btn-export.report{background:#f6eeee;color:var(--maroon);border-color:#e3cfd0;font-weight:700;}
+.btn-export.report:hover{background:#ecdcdc;}
+.status{z-index:90;}
+#reportModal{z-index:80;}
+.rb-top{display:flex;flex-direction:column;gap:6px;margin:10px 0 12px;}
+.rb-top label{font-size:.85rem;color:var(--muted);}
+.rb-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0;}
+.rb-tools .rb-count{margin-left:auto;font-size:.82rem;color:var(--muted);}
+.rb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(230px,100%),1fr));gap:8px 12px;}
+.rb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer;background:#fff;font-size:.9rem;line-height:1.35;overflow-wrap:anywhere;}
+.rb-item input[type=checkbox]{width:20px;height:20px;padding:0;flex:none;accent-color:var(--maroon);}
+.rb-item.on{border-color:var(--maroon);background:#faf1f3;}
+.rb-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid var(--line);position:sticky;bottom:-20px;background:#fff;}
+.rb-actions button{flex:1 1 90px;padding:12px 10px;font-size:.9rem;}
 /* ---- Credit block ---- */
 .credit{text-align:center;color:var(--muted);font-size:.82rem;line-height:1.6;}
 .credit .by{font-size:.78rem;}
@@ -1137,6 +1152,7 @@ function wireCollection(cfg){
   return { getRecords: ()=> records, getVisible: ()=> visible, rerender: ()=> render(searchEl.value) };
 }
 
+const reportSources = {};
 // ---------- Teachers ----------
 const teacherFieldIds = ['nic','fullName','address','dob','gender','phone','whatsapp','position','grade',
   'firstAppointDate','schoolJoinDate','eduQual','profQual','regNo','worpNo','mainSubject','otherSubjects',
@@ -1581,6 +1597,7 @@ const studentsApi = wireCollection({
 
   // archive tab
   let arch = [], archVisible = [];
+  reportSources.studentArchive = { fieldIds: archiveFieldIds, labels: archiveLabels, rows: ()=>archVisible, title: 'සිසු ලේඛනාගාර වාර්තාව (Student Archive Report)', file: 'student_archive_report' };
   function renderArchive(){
     const q = $('a_search').value.trim().toLowerCase(), st = $('a_status').value;
     archVisible = arch.filter(r => (!st || r.status === st) &&
@@ -1655,6 +1672,7 @@ const studentsApi = wireCollection({
 
   // Staff archive tab
   let staffArch = [], staffArchVisible = [];
+  reportSources.staffArchive = { fieldIds: archiveTeacherFieldIds, labels: archiveTeacherLabels, rows: ()=>staffArchVisible, title: 'කාර්ය මණ්ඩල ලේඛනාගාර වාර්තාව (Staff Archive Report)', file: 'staff_archive_report' };
   function renderStaffArchive(){
     const q = $('ta_search').value.trim().toLowerCase(), st = $('ta_status').value;
     staffArchVisible = staffArch.filter(r => (!st || r.status === st) &&
@@ -1761,6 +1779,7 @@ const studentsApi = wireCollection({
   }
 
   let marksRecords = [], marksVisible = [];
+  reportSources.marks = { fieldIds: marksFieldIds, labels: marksLabels, rows: ()=>marksVisible, title: 'ලකුණු සහ ප්‍රතිඵල වාර්තාව (Marks & Results Report)', file: 'marks_report' };
 
   function refreshStudentDatalist(){
     $('m_studentList').innerHTML = studentsApi.getRecords().map(s =>
@@ -2403,6 +2422,135 @@ const studentsApi = wireCollection({
       el.value = el.value.toUpperCase();
       el.setSelectionRange(pos, pos);
     });
+  });
+})();
+
+// ---------- Custom report builder (choose fields -> CSV / Excel / PDF) ----------
+(function(){
+  const NO_ID = '__no';
+  const NO_LABEL = 'අනු අංකය (No.)';
+  let modal = null;
+
+  function norm(v){
+    if(v === true) return 'Yes';
+    if(v === false || v === undefined || v === null) return '';
+    return v;
+  }
+  function loadSel(key){
+    try{ const a = JSON.parse(localStorage.getItem('report_fields_' + key) || 'null'); return Array.isArray(a) ? a : null; }catch(e){ return null; }
+  }
+  function saveSel(key, arr){
+    try{ localStorage.setItem('report_fields_' + key, JSON.stringify(arr)); }catch(e){}
+  }
+
+  function ensureModal(){
+    if(modal) return modal;
+    modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'reportModal';
+    modal.innerHTML = `<div class="modal-box">
+      <h2 style="margin:0 0 4px;color:var(--maroon);">අභිරුචි වාර්තාව (Custom Report)</h2>
+      <div class="count" id="rb_info"></div>
+      <div class="rb-top">
+        <label for="rb_title">වාර්තාවේ මාතෘකාව (Report title)</label>
+        <input id="rb_title">
+      </div>
+      <label class="rb-item" style="margin-bottom:8px;"><input type="checkbox" id="rb_serial" checked><span>අනු අංකය ඇතුළත් කරන්න (Include serial No.)</span></label>
+      <div class="rb-tools">
+        <button type="button" class="btn-secondary" id="rb_all">සියල්ල තෝරන්න (Select all)</button>
+        <button type="button" class="btn-secondary" id="rb_none">හිස් කරන්න (Clear)</button>
+        <span class="rb-count" id="rb_count"></span>
+      </div>
+      <div class="rb-grid" id="rb_grid"></div>
+      <div class="rb-actions">
+        <button type="button" class="btn-export csv" id="rb_csv">CSV</button>
+        <button type="button" class="btn-export xlsx" id="rb_xlsx">Excel</button>
+        <button type="button" class="btn-export pdf" id="rb_pdf">PDF</button>
+        <button type="button" class="btn-secondary" id="rb_close">වසන්න (Close)</button>
+      </div>
+    </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e=>{ if(e.target === modal) modal.classList.remove('show'); });
+    modal.querySelector('#rb_close').addEventListener('click', ()=> modal.classList.remove('show'));
+    return modal;
+  }
+
+  function openBuilder(key, src){
+    const m = ensureModal();
+    const $ = id => m.querySelector('#' + id);
+    const grid = $('rb_grid');
+    const rowsNow = () => (src.rows() || []);
+    const saved = loadSel(key);
+    const initial = new Set(saved ? saved.filter(f => src.fieldIds.includes(f)) : src.fieldIds);
+
+    $('rb_title').value = src.title;
+    $('rb_info').textContent = `වාර්තාවට ඇතුළත් වන වාර්තා ගණන (Records in report): ${rowsNow().length} — දැනට පෙන්වන ලැයිස්තුව / සෙවුම / පෙරහන අනුව`;
+    grid.innerHTML = '';
+    src.fieldIds.forEach(f=>{
+      const lab = document.createElement('label');
+      lab.className = 'rb-item';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.value = f; cb.checked = initial.has(f);
+      const sp = document.createElement('span');
+      sp.textContent = src.labels[f] || f;
+      lab.appendChild(cb); lab.appendChild(sp);
+      grid.appendChild(lab);
+    });
+
+    const boxes = () => Array.from(grid.querySelectorAll('input[type=checkbox]'));
+    function refresh(){
+      boxes().forEach(cb => cb.parentElement.classList.toggle('on', cb.checked));
+      $('rb_count').textContent = `තෝරාගත් (Selected): ${boxes().filter(b=>b.checked).length} / ${src.fieldIds.length}`;
+    }
+    grid.onchange = refresh;
+    $('rb_all').onclick = ()=>{ boxes().forEach(b=> b.checked = true); refresh(); };
+    $('rb_none').onclick = ()=>{ boxes().forEach(b=> b.checked = false); refresh(); };
+    refresh();
+
+    function collect(){
+      const chosen = boxes().filter(b=>b.checked).map(b=>b.value);
+      if(chosen.length === 0){ showStatus('අවම වශයෙන් එක් ක්ෂේත්‍රයක් තෝරන්න (Select at least one field)', true); return null; }
+      const rows = rowsNow();
+      if(rows.length === 0){ showStatus('වාර්තා කිසිවක් නොමැත (No records to export)', true); return null; }
+      saveSel(key, chosen);
+      const withNo = $('rb_serial').checked;
+      const labels = Object.assign({}, src.labels, { [NO_ID]: NO_LABEL });
+      const data = rows.map((r, i)=>{
+        const o = {};
+        if(withNo) o[NO_ID] = i + 1;
+        chosen.forEach(f => { o[f] = norm(r[f]); });
+        return o;
+      });
+      return { fieldIds: (withNo ? [NO_ID] : []).concat(chosen), labels, data };
+    }
+    $('rb_csv').onclick = ()=>{ const c = collect(); if(c) csvDownload(src.file + '.csv', c.fieldIds, c.labels, c.data); };
+    $('rb_xlsx').onclick = ()=>{ const c = collect(); if(c) excelDownload(src.file + '.xlsx', c.fieldIds, c.labels, c.data); };
+    $('rb_pdf').onclick = ()=>{ const c = collect(); if(c) pdfDownload($('rb_title').value.trim() || src.title, c.fieldIds, c.labels, c.data); };
+
+    m.classList.add('show');
+  }
+
+  const sources = {
+    staff: { csvId: 't_exportCsv', src: () => ({ fieldIds: teacherFieldIds, labels: teacherLabels, rows: () => teachersApi.getVisible(), title: 'කාර්ය මණ්ඩල වාර්තාව (Staff Report)', file: 'staff_report' }) },
+    students: { csvId: 's_exportCsv', src: () => ({ fieldIds: studentFieldIds, labels: studentLabels, rows: () => studentsApi.getVisible(), title: 'සිසු වාර්තාව (Student Report)', file: 'student_report' }) },
+    studentArchive: { csvId: 'a_exportCsv', src: () => reportSources.studentArchive },
+    staffArchive: { csvId: 'ta_exportCsv', src: () => reportSources.staffArchive },
+    marks: { csvId: 'm_exportCsv', src: () => reportSources.marks }
+  };
+
+  Object.keys(sources).forEach(key=>{
+    const csvBtn = document.getElementById(sources[key].csvId);
+    if(!csvBtn || !csvBtn.parentElement) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-export report';
+    btn.textContent = 'අභිරුචි වාර්තාව (Custom Report)';
+    btn.addEventListener('click', ()=>{
+      const src = sources[key].src();
+      if(!src){ showStatus('දත්ත තවම පූරණය වී නැත (Data not loaded yet)', true); return; }
+      openBuilder(key, src);
+    });
+    csvBtn.parentElement.insertBefore(btn, csvBtn);
   });
 })();
 </script>
