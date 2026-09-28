@@ -185,7 +185,9 @@ html{-webkit-text-size-adjust:100%;}
 }
 
 /* ---- Mobile overflow fix: stop long <select> options / content from widening the page ---- */
-html,body{max-width:100%;overflow-x:hidden;}
+html,body{max-width:100%;}
+html{overflow-x:hidden;}
+body{overflow-x:clip;}
 .grid{grid-template-columns:repeat(2,minmax(0,1fr));}
 .grid > *,.f,.field{min-width:0;}
 .f label,.field label{display:block;overflow-wrap:anywhere;}
@@ -260,6 +262,42 @@ header,.header-brand,.header-brand > div{min-width:0;}
 }
 @supports(padding:max(0px)){
   header{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));}
+}
+
+/* ---- Mobile app-bar + hamburger menu + stacked cards ---- */
+.menu-btn{display:none;}
+@media(max-width:640px){
+  #appView{background:var(--bg);}
+  header{position:sticky;top:0;z-index:50;flex-wrap:wrap;align-items:center;padding:10px 14px;gap:0;}
+  .header-brand{order:1;flex:1 1 0;min-width:0;gap:12px;}
+  .header-brand img{height:44px;width:44px;border-radius:50%;}
+  header h1{font-size:1.02rem;line-height:1.3;}
+  .menu-btn{order:2;display:flex;align-items:center;justify-content:center;flex:none;width:48px;height:48px;margin-left:10px;
+    background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);border-radius:12px;color:#fff;padding:0;}
+  .menu-btn svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round;}
+  .menu-btn .ic-close{display:none;}
+  body.menu-open .menu-btn .ic-open{display:none;}
+  body.menu-open .menu-btn .ic-close{display:block;}
+  header > div:last-child{order:3;display:none;flex:1 1 100%;width:100%;justify-content:space-between;align-items:center;gap:10px;
+    padding-top:10px;margin-top:10px;border-top:1px solid rgba(255,255,255,.2);}
+  body.menu-open header > div:last-child{display:flex;}
+  /* tabs become a slide-down menu */
+  nav.tabs{display:none;position:fixed;top:var(--hdr,72px);left:0;right:0;bottom:0;z-index:45;background:#fff;
+    flex-direction:column;gap:0;padding:8px 0 24px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;box-shadow:none;border:0;}
+  body.menu-open nav.tabs{display:flex;}
+  nav.tabs button{width:100%;text-align:left;white-space:normal;padding:18px 20px;font-size:1rem;line-height:1.45;
+    border:0;border-left:5px solid transparent;border-bottom:1px solid var(--line);border-radius:0;background:none;}
+  nav.tabs button.active{background:#f6eeee;color:var(--maroon);border-left-color:var(--maroon);border-bottom-color:var(--line);}
+  /* stacked full-width cards */
+  .wrap{padding:16px 14px 48px;}
+  .card{padding:20px 16px;border-radius:16px;margin-bottom:16px;}
+  .card h2{font-size:1.1rem;margin-bottom:14px;}
+  .subtabs{margin-bottom:14px;}
+  .subtabs button{flex:1 1 100%;border-radius:14px;padding:13px 14px;font-size:.9rem;text-align:left;}
+  .grid{gap:14px;}
+  .f label,.field label{margin-bottom:6px;font-size:.88rem;}
+  input,select,textarea{border-radius:10px;}
+  table.mob-card tr{border-radius:14px;padding:6px 16px;margin-bottom:14px;}
 }
 
 /* ---- Credit block ---- */
@@ -2387,6 +2425,26 @@ const studentsApi = wireCollection({
   new MutationObserver(sched).observe(document.body,{childList:true,subtree:true});
   document.addEventListener('DOMContentLoaded',apply);
   apply();
+})();
+</script>
+<script>
+/* Mobile hamburger menu (button only shows on phones via CSS) */
+(function(){
+  var hdr=document.querySelector('header');
+  if(!hdr||hdr.querySelector('.menu-btn'))return;
+  var b=document.createElement('button');
+  b.type='button';b.className='menu-btn';b.setAttribute('aria-label','Menu');
+  b.innerHTML='<svg class="ic-open" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg><svg class="ic-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  hdr.appendChild(b);
+  function setHdr(){document.documentElement.style.setProperty('--hdr',hdr.offsetHeight+'px');}
+  function close(){document.body.classList.remove('menu-open');}
+  b.addEventListener('click',function(){
+    document.body.classList.toggle('menu-open');
+    setHdr();window.scrollTo(0,0);
+  });
+  var nav=document.querySelector('nav.tabs');
+  if(nav)nav.addEventListener('click',function(e){if(e.target.closest('button'))setTimeout(function(){close();window.scrollTo(0,0);},0);});
+  window.addEventListener('resize',function(){if(window.innerWidth>640)close();else setHdr();});
 })();
 </script>
 </body>
