@@ -184,6 +184,22 @@ html{-webkit-text-size-adjust:100%;}
   .resp-table td:last-child button{flex:1 1 calc(50% - 6px);margin:0;padding:10px 8px;font-size:.85rem;}
 }
 
+/* ---- Mobile overflow fix: stop long <select> options / content from widening the page ---- */
+html,body{max-width:100%;overflow-x:hidden;}
+.grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+.grid > *,.f,.field{min-width:0;}
+.f label,.field label{display:block;overflow-wrap:anywhere;}
+input,select,textarea{max-width:100%;min-width:0;}
+select{text-overflow:ellipsis;}
+header,.header-brand,.header-brand > div{min-width:0;}
+.header-brand h1{overflow-wrap:anywhere;}
+.app-body,.main-col,.card,.wrap,.tabpanel,.subtabpanel,form{min-width:0;max-width:100%;}
+@media(max-width:900px){nav.tabs{min-width:0;max-width:100%;}}
+@media(max-width:640px){
+  .grid{grid-template-columns:minmax(0,1fr);}
+  header{padding:12px 14px;}
+}
+
 /* ---- Credit block ---- */
 .credit{text-align:center;color:var(--muted);font-size:.82rem;line-height:1.6;}
 .credit .by{font-size:.78rem;}
