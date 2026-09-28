@@ -317,6 +317,14 @@ header,.header-brand,.header-brand > div{min-width:0;}
 .rb-item.on{border-color:var(--maroon);background:#faf1f3;}
 .rb-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid var(--line);position:sticky;bottom:-20px;background:#fff;}
 .rb-actions button{flex:1 1 90px;padding:12px 10px;font-size:.9rem;}
+/* ---- Signature sheet ---- */
+.btn-export.sign{background:#fff7dc;color:#7a5a00;border-color:#ecd48a;font-weight:700;}
+.btn-export.sign:hover{background:#fbeeb8;}
+#sigModal{z-index:80;}
+.sg-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;margin:10px 0 12px;}
+.sg-form .full{grid-column:1/-1;}
+.sg-form label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:4px;}
+@media(max-width:640px){.sg-form{grid-template-columns:minmax(0,1fr);}}
 /* ---- Credit block ---- */
 .credit{text-align:center;color:var(--muted);font-size:.82rem;line-height:1.6;}
 .credit .by{font-size:.78rem;}
@@ -2550,6 +2558,179 @@ const studentsApi = wireCollection({
       if(!src){ showStatus('දත්ත තවම පූරණය වී නැත (Data not loaded yet)', true); return; }
       openBuilder(key, src);
     });
+    csvBtn.parentElement.insertBefore(btn, csvBtn);
+  });
+})();
+
+// ---------- Signature sheet (අත්සන් ලේඛනය) : class / staff meeting attendance list ----------
+(function(){
+  const NO='__no', SIG='__sig', REM='__rem';
+  const L_NO='අනු අංකය (No.)', L_SIG='අත්සන (Signature)', L_REM='සටහන (Remarks)';
+  let modal=null;
+  const norm=v=> v===true?'Yes':(v===false||v===undefined||v===null)?'':v;
+  const today=()=> new Date().toISOString().slice(0,10);
+  const loadSel=k=>{ try{ const a=JSON.parse(localStorage.getItem('sig_fields_'+k)||'null'); return Array.isArray(a)?a:null; }catch(e){ return null; } };
+  const saveSel=(k,a)=>{ try{ localStorage.setItem('sig_fields_'+k, JSON.stringify(a)); }catch(e){} };
+  const selText=id=>{ const el=document.getElementById(id); return (el && el.value && el.selectedOptions[0]) ? el.selectedOptions[0].text.trim() : ''; };
+
+  function ensureModal(){
+    if(modal) return modal;
+    modal=document.createElement('div');
+    modal.className='modal'; modal.id='sigModal';
+    modal.innerHTML=`<div class="modal-box">
+      <h2 style="margin:0 0 4px;color:var(--maroon);">අත්සන් ලේඛනය (Signature Sheet)</h2>
+      <div class="count" id="sg_info"></div>
+      <div class="sg-form">
+        <div class="full"><label>මාතෘකාව (Title)</label><input id="sg_title"></div>
+        <div><label>දිනය (Date)</label><input type="date" id="sg_date"></div>
+        <div><label>ශ්‍රේණිය / පන්තිය / විස්තරය (Class / Details)</label><input id="sg_class"></div>
+        <div class="full"><label>රැස්වීමේ විෂයය (Meeting subject) — අවශ්‍ය නම්</label><input id="sg_topic"></div>
+      </div>
+      <div class="rb-tools"><b style="font-size:.9rem;">ලේඛනයේ පෙන්විය යුතු තොරතුරු (Columns)</b><span class="rb-count" id="sg_count"></span></div>
+      <div class="rb-grid" id="sg_grid"></div>
+      <label class="rb-item" style="margin-top:10px;"><input type="checkbox" id="sg_rem"><span>සටහන් තීරුවක් ඇතුළත් කරන්න (Add Remarks column)</span></label>
+      <div class="count" style="margin-top:8px;">අනු අංකය සහ අත්සන තීරු ස්වයංක්‍රීයව ඇතුළත් වේ (No. and Signature columns are always included).</div>
+      <div class="rb-actions">
+        <button type="button" class="btn-export csv" id="sg_csv">CSV</button>
+        <button type="button" class="btn-export xlsx" id="sg_xlsx">Excel</button>
+        <button type="button" class="btn-export pdf" id="sg_pdf">PDF</button>
+        <button type="button" class="btn-secondary" id="sg_close">වසන්න (Close)</button>
+      </div>
+    </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click',e=>{ if(e.target===modal) modal.classList.remove('show'); });
+    modal.querySelector('#sg_close').addEventListener('click',()=> modal.classList.remove('show'));
+    return modal;
+  }
+
+  function openSheet(key, src){
+    const m=ensureModal(); const $=id=>m.querySelector('#'+id);
+    const rowsNow=()=> (src.rows()||[]);
+    const saved=loadSel(key);
+    const on=new Set(saved ? saved.filter(f=>src.pick.includes(f)) : src.defaults);
+    $('sg_title').value=src.title;
+    $('sg_date').value=today();
+    $('sg_class').value=src.details ? src.details() : '';
+    $('sg_topic').value='';
+    $('sg_rem').checked=false;
+    $('sg_info').textContent=`ලේඛනයට ඇතුළත් වන ගණන (Entries): ${rowsNow().length} — දැනට පෙන්වන ලැයිස්තුව / පෙරහන අනුව`;
+    const grid=$('sg_grid'); grid.innerHTML='';
+    src.pick.forEach(f=>{
+      const lab=document.createElement('label'); lab.className='rb-item';
+      const cb=document.createElement('input'); cb.type='checkbox'; cb.value=f; cb.checked=on.has(f);
+      const sp=document.createElement('span'); sp.textContent=src.labels[f]||f;
+      lab.appendChild(cb); lab.appendChild(sp); grid.appendChild(lab);
+    });
+    const boxes=()=>Array.from(grid.querySelectorAll('input[type=checkbox]'));
+    const refresh=()=>{ boxes().forEach(b=>b.parentElement.classList.toggle('on',b.checked)); $('sg_count').textContent=`තෝරාගත් (Selected): ${boxes().filter(b=>b.checked).length}`; };
+    grid.onchange=refresh; refresh();
+
+    function collect(){
+      const chosen=boxes().filter(b=>b.checked).map(b=>b.value);
+      if(!chosen.length){ showStatus('අවම වශයෙන් එක් තොරතුරක් තෝරන්න (Select at least one column)', true); return null; }
+      const rows=rowsNow();
+      if(!rows.length){ showStatus('වාර්තා කිසිවක් නොමැත (No records to export)', true); return null; }
+      saveSel(key,chosen);
+      const withRem=$('sg_rem').checked;
+      const fieldIds=[NO].concat(chosen,[SIG],withRem?[REM]:[]);
+      const labels=Object.assign({},src.labels,{[NO]:L_NO,[SIG]:L_SIG,[REM]:L_REM});
+      const data=rows.map((r,i)=>{ const o={[NO]:i+1,[SIG]:'',[REM]:''}; chosen.forEach(f=>o[f]=norm(r[f])); return o; });
+      return { fieldIds, labels, data, title:$('sg_title').value.trim()||src.title,
+               date:$('sg_date').value, cls:$('sg_class').value.trim(), topic:$('sg_topic').value.trim() };
+    }
+    const metaLines=c=>{ const a=[]; if(c.date) a.push('දිනය (Date): '+c.date); if(c.cls) a.push('ශ්‍රේණිය / පන්තිය: '+c.cls); if(c.topic) a.push('රැස්වීම: '+c.topic); return a; };
+
+    $('sg_csv').onclick=()=>{ const c=collect(); if(c) csvDownload(src.file+'.csv', c.fieldIds, c.labels, c.data); };
+
+    $('sg_xlsx').onclick=()=>{
+      const c=collect(); if(!c) return;
+      const aoa=[[c.title]]; metaLines(c).forEach(t=>aoa.push([t])); aoa.push([]);
+      const headRow=aoa.length;
+      aoa.push(c.fieldIds.map(f=>c.labels[f]||f));
+      c.data.forEach(r=>aoa.push(c.fieldIds.map(f=>r[f])));
+      const ws=XLSX.utils.aoa_to_sheet(aoa);
+      ws['!cols']=c.fieldIds.map(f=>{
+        if(f===NO) return {wch:8};
+        if(f===SIG) return {wch:32};
+        if(f===REM) return {wch:22};
+        const mx=Math.max((c.labels[f]||f).length, ...c.data.map(r=>String(r[f]).length));
+        return {wch:Math.min(Math.max(mx+2,10),42)};
+      });
+      ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:Math.max(c.fieldIds.length-1,0)}}];
+      ws['!rows']=aoa.map((_,i)=> i>headRow ? {hpt:28} : {});
+      const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Signature Sheet');
+      XLSX.writeFile(wb, src.file+'.xlsx');
+    };
+
+    $('sg_pdf').onclick=async ()=>{
+      const c=collect(); if(!c) return;
+      if(!window.html2canvas || !window.jspdf){ showStatus('PDF library load නොවුණි (network බලන්න)', true); return; }
+      const btn=$('sg_pdf'); btn.disabled=true; showStatus('PDF සකසමින්...');
+      const PER=16, pages=Math.ceil(c.data.length/PER);
+      const meta=metaLines(c).map(t=>`<div style="font-size:13px;margin:2px 0;">${escapeHtml(t)}</div>`).join('');
+      const th=f=>{
+        const w = f===NO ? 'width:46px;' : f===SIG ? 'width:200px;' : f===REM ? 'width:110px;' : '';
+        return `<th style="border:1px solid #777;padding:7px 8px;background:#f6eeee;color:#6F092E;text-align:left;font-size:12.5px;${w}">${escapeHtml(c.labels[f]||f)}</th>`;
+      };
+      const td=(r,f)=>`<td style="border:1px solid #777;padding:4px 8px;font-size:12.5px;height:40px;vertical-align:middle;">${escapeHtml(r[f]===''?'':String(r[f]))}</td>`;
+      try{
+        const { jsPDF }=window.jspdf;
+        const pdf=new jsPDF({orientation:'portrait',unit:'pt',format:'a4'});
+        const pw=pdf.internal.pageSize.getWidth(), ph=pdf.internal.pageSize.getHeight();
+        for(let p=0;p<pages;p++){
+          const slice=c.data.slice(p*PER,(p+1)*PER);
+          const el=document.createElement('div');
+          el.style.cssText="position:fixed;left:-99999px;top:0;width:794px;height:1123px;box-sizing:border-box;background:#fff;padding:28px 32px 56px;font-family:'Noto Sans Sinhala',sans-serif;color:#241417;";
+          el.innerHTML=`
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;">
+              ${SCHOOL_LOGO?`<img src="${SCHOOL_LOGO}" style="height:54px;width:54px;object-fit:contain;flex-shrink:0;">`:''}
+              <h2 style="color:#6F092E;font-family:'Noto Serif Sinhala',serif;margin:0;font-size:20px;line-height:1.3;">${escapeHtml(c.title)}</h2>
+            </div>
+            <div style="margin-bottom:10px;">${meta}</div>
+            <table style="border-collapse:collapse;width:100%;">
+              <thead><tr>${c.fieldIds.map(th).join('')}</tr></thead>
+              <tbody>${slice.map(r=>`<tr>${c.fieldIds.map(f=>td(r,f)).join('')}</tr>`).join('')}</tbody>
+            </table>
+            <div style="position:absolute;left:32px;right:32px;bottom:22px;display:flex;justify-content:space-between;font-size:11px;color:#6B5B5E;">
+              <span>මුළු ගණන (Total): ${c.data.length}</span><span>${p+1} / ${pages}</span>
+            </div>`;
+          document.body.appendChild(el);
+          const canvas=await html2canvas(el,{scale:2,backgroundColor:'#ffffff'});
+          document.body.removeChild(el);
+          if(p>0) pdf.addPage();
+          pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',0,0,pw,ph);
+        }
+        pdf.save(src.file+'.pdf');
+        showStatus('PDF සූදානම්');
+      }catch(err){
+        console.error(err); showStatus('PDF සෑදීමේ දෝෂයකි (PDF error)', true);
+      }finally{ btn.disabled=false; }
+    };
+
+    m.classList.add('show');
+  }
+
+  const sources={
+    students:{ csvId:'s_exportCsv', src:()=>({
+      pick:['admissionNo','childNameSinhala','childNameEnglish','initialsNameSinhala','gradeNumber','className','fatherName','motherName','declarantName','relationship','contactPhone'],
+      defaults:['admissionNo','childNameSinhala'],
+      labels:studentLabels, rows:()=>studentsApi.getVisible(),
+      title:'පන්ති රැස්වීම් අත්සන් ලේඛනය (Class Meeting Signature Sheet)', file:'student_signature_sheet',
+      details:()=>[selText('s_fGrade'),selText('s_fClass')].filter(Boolean).join(' - ') }) },
+    staff:{ csvId:'t_exportCsv', src:()=>({
+      pick:['nic','fullName','position','grade','mainSubject','phone'],
+      defaults:['fullName','position'],
+      labels:teacherLabels, rows:()=>teachersApi.getVisible(),
+      title:'කාර්ය මණ්ඩල රැස්වීම් අත්සන් ලේඛනය (Staff Meeting Signature Sheet)', file:'staff_signature_sheet' }) }
+  };
+
+  Object.keys(sources).forEach(key=>{
+    const csvBtn=document.getElementById(sources[key].csvId);
+    if(!csvBtn||!csvBtn.parentElement) return;
+    const btn=document.createElement('button');
+    btn.type='button'; btn.className='btn-export sign';
+    btn.textContent='අත්සන් ලේඛනය (Signature Sheet)';
+    btn.addEventListener('click',()=> openSheet(key, sources[key].src()));
     csvBtn.parentElement.insertBefore(btn, csvBtn);
   });
 })();
