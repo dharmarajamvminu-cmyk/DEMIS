@@ -61,11 +61,25 @@ header .who{font-size:.8rem;opacity:.85;}
 @media(max-width:640px){header h1{font-size:1.2rem;} .header-brand img{height:46px;width:46px;}}
 .btn-logout{background:rgba(255,255,255,.15);color:#fff;padding:7px 14px;font-size:.82rem;}
 .btn-logout:hover{background:rgba(255,255,255,.28);}
-nav.tabs{display:flex;gap:6px;background:#fff;border-bottom:1px solid var(--line);padding:0 16px;
-  overflow-x:auto;}
-nav.tabs button{background:none;color:var(--muted);padding:13px 16px;font-size:.9rem;
-  border-bottom:3px solid transparent;white-space:nowrap;}
-nav.tabs button.active{color:var(--maroon);border-color:var(--maroon);}
+/* ---- Left sidebar tabs ---- */
+.app-body{display:flex;align-items:flex-start;min-height:calc(100vh - 90px);}
+.main-col{flex:1;min-width:0;}
+nav.tabs{display:flex;flex-direction:column;gap:2px;flex:none;width:270px;background:#fff;
+  border-right:1px solid var(--line);padding:14px 0;position:sticky;top:0;
+  align-self:flex-start;max-height:100vh;overflow-y:auto;}
+nav.tabs button{background:none;color:var(--muted);width:100%;text-align:left;padding:14px 18px;
+  font-size:.9rem;line-height:1.45;border-radius:0;border-left:4px solid transparent;
+  white-space:normal;transition:background .15s,color .15s;}
+nav.tabs button:hover{background:#faf3f1;color:var(--maroon-dark);}
+nav.tabs button.active{color:var(--maroon);background:#f6eeee;border-left-color:var(--maroon);}
+@media(max-width:900px){
+  .app-body{flex-direction:column;align-items:stretch;min-height:0;}
+  nav.tabs{flex-direction:row;width:auto;position:static;max-height:none;gap:6px;
+    border-right:none;border-bottom:1px solid var(--line);padding:0 16px;overflow-x:auto;overflow-y:hidden;}
+  nav.tabs button{width:auto;padding:13px 16px;white-space:nowrap;border-left:none;
+    border-bottom:3px solid transparent;}
+  nav.tabs button.active{background:none;border-bottom-color:var(--maroon);}
+}
 .wrap{max-width:1000px;margin:0 auto;padding:18px 16px 60px;}
 .tabpanel{display:none;}
 .tabpanel.active{display:block;}
@@ -237,6 +251,7 @@ html{-webkit-text-size-adjust:100%;}
     </div>
   </header>
 
+  <div class="app-body">
   <nav class="tabs">
     <button data-tab="teachers" class="active">අධ්‍යයන අනධ්‍යන කාර්ය මණ්ඩල තොරතුරු (Staff)</button>
     <button data-tab="students">සිසු ලේඛනය (Students)</button>
@@ -244,6 +259,7 @@ html{-webkit-text-size-adjust:100%;}
     <button data-tab="analysis">විෂය අනුව විශ්ලේෂණය (Subject Analysis)</button>
   </nav>
 
+  <div class="main-col">
   <div class="wrap">
 
     <!-- ---------- TEACHERS TAB ---------- -->
@@ -666,6 +682,8 @@ html{-webkit-text-size-adjust:100%;}
       </div>
     </div>
   </footer>
+  </div><!-- /main-col -->
+  </div><!-- /app-body -->
 </div>
 
 <div class="status" id="statusBox"></div>
