@@ -435,6 +435,7 @@ select[multiple]{min-height:170px;}
     <button data-tab="marks">ලකුණු හා ප්‍රතිඵල කළමනාකරණය (Marks &amp; Results)</button>
     <button data-tab="analysis">විෂය අනුව විශ්ලේෂණය (Subject Analysis)</button>
     <button data-tab="users" class="admin-only">පරිශීලක පාලනය (Users &amp; Access)</button>
+    <button data-tab="olanalysis" class="admin-only">සා.පෙළ ප්‍රතිඵල විශ්ලේෂණය (O/L Analysis)</button>
   </nav>
 
   <div class="main-col">
@@ -893,6 +894,11 @@ select[multiple]{min-height:170px;}
       </div>
     </section>
 
+    <!-- ---------- O/L RESULTS ANALYSIS TAB (admin only) ---------- -->
+    <section class="tabpanel admin-only" id="tab-olanalysis">
+      <iframe id="olFrame" title="G.C.E. O/L Results Analysis" style="width:100%;border:0;display:block;min-height:640px;background:transparent;"></iframe>
+    </section>
+
   </div>
   <footer class="app-credit">
     <div class="credit">
@@ -956,7 +962,7 @@ const db = getFirestore(app);
 const BOOTSTRAP_ADMINS = ['sudanchamalka@gmail.com'];
 const ROLE_LABEL = { admin:'පරිපාලක (Admin)', classTeacher:'පන්ති භාර ගුරු (Class Teacher)', subjectTeacher:'විෂය ගුරු (Subject Teacher)' };
 const TAB_ACCESS = {
-  admin:['teachers','students','marks','analysis','users'],
+  admin:['teachers','students','marks','analysis','users','olanalysis'],
   classTeacher:['teachers','students','marks','analysis'],
   subjectTeacher:['teachers','marks']
 };
@@ -3233,6 +3239,570 @@ function filterRows(gf, src, g, c){
   var nav=document.querySelector('nav.tabs');
   if(nav)nav.addEventListener('click',function(e){if(e.target.closest('button'))setTimeout(function(){close();window.scrollTo(0,0);},0);});
   window.addEventListener('resize',function(){if(window.innerWidth>640)close();else setHdr();});
+})();
+</script>
+
+<template id="olToolTpl">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Sinhala:wght@600;700&family=Noto+Sans+Sinhala:wght@400;600;800&display=swap" rel="stylesheet"><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#F6ECE6;--card:#FFFFFF;--ink:#241417;--mute:#6B5B5E;--line:#EBE0DE;--brand:#6F092E;--brand-dark:#3D0016;--gold:#E8B400;--good:#1A7A60;--bad:#B03A2E;--soft:#f6eeee}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans Sinhala','Iskoola Pota','Nirmala UI',system-ui,sans-serif;line-height:1.7}
+header{background:var(--brand);color:#fff;padding:22px 20px}
+header h1{margin:0 0 4px;font-size:clamp(1.25rem,3vw,1.8rem);font-weight:800;line-height:1.4}
+header p{margin:0;opacity:.9}
+main{max-width:1100px;margin:0 auto;padding:20px}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:20px}
+h2{margin:0 0 14px;font-size:1.15rem;line-height:1.5}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+label{display:block;font-size:.85rem;color:var(--mute);margin-bottom:4px}
+select,input[type=text],textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+select:focus-visible,input:focus-visible,textarea:focus-visible,button:focus-visible,.drop:focus-within{outline:3px solid var(--brand);outline-offset:2px}
+.drop{margin-top:16px;border:2px dashed var(--line);border-radius:10px;padding:24px;text-align:center;cursor:pointer;display:block;color:var(--mute)}
+.drop.over{border-color:var(--brand);background:var(--soft)}
+.drop input{display:none}
+.bar{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+button{font:inherit;padding:8px 16px;border-radius:8px;border:1px solid var(--brand);background:transparent;color:var(--brand);cursor:pointer}
+#status{margin-top:12px;font-size:.9rem;color:var(--mute)}
+#status.err{color:var(--bad)}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.m{border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--bg)}
+.m b{display:block;font-size:1.9rem;font-weight:800;line-height:1.3}
+.m span{color:var(--mute);font-size:.88rem}
+.m small{font-size:1rem;font-weight:600;margin-left:6px}
+.good b,.good small{color:var(--good)}.bad b,.bad small{color:var(--bad)}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{background:var(--soft);font-weight:600}
+.rank th,.rank td{text-align:center}
+.rank td{font-size:1.5rem;font-weight:800}
+.rank.w td{color:var(--bad)}.rank.b td{color:var(--good)}
+.pbar{height:8px;border-radius:4px;background:var(--line);min-width:90px;overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--good)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.sub{border:1px solid var(--line);border-radius:10px;padding:14px}
+.sub h4{margin:0 0 8px}
+.stack{display:flex;height:14px;border-radius:7px;overflow:hidden;margin:6px 0}
+.stack i{display:block}
+.leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.8rem;color:var(--mute)}
+.gA{background:#1A7A60}.gB{background:#2C8FC9}.gC{background:#E8B400}.gS{background:#C9761B}.gW{background:#B03A2E}
+.empty{color:var(--mute);margin:0}
+textarea{font:inherit;resize:vertical;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+button.pri{background:var(--brand);color:var(--card)}
+.chk{display:flex;align-items:center;gap:8px;color:var(--ink);font-size:.95rem;margin:0}
+.chk input{width:auto}
+h3{margin:18px 0 10px;font-size:1rem}
+#printArea{display:none}
+.rp{font-family:'Noto Sans Sinhala','Iskoola Pota','Nirmala UI',sans-serif;color:#111;background:#fff;font-size:10.5pt;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.rp h1{font-size:17pt;margin:0 0 4px;color:#6F092E}.rp h2{font-size:12pt;margin:14px 0 4px;color:#6F092E;break-after:avoid}
+.rp .meta,.rp .flt{margin:2px 0;font-size:9.5pt;color:#333}.rp .rem{white-space:normal}
+.rp table{width:100%;border-collapse:collapse;font-size:9.5pt;margin:4px 0 8px}
+.rp th,.rp td{border:1px solid #8a9a92;padding:3px 6px;text-align:left}
+.rp th{background:#f6eeee}.rp tr{break-inside:avoid}.rp thead{display:table-header-group}
+.rp .pb{height:8px;background:#d9dfdc;min-width:70px}.rp .pb i{display:block;height:100%;background:#1a7f4b}
+.rp .sign{display:flex;gap:30px;margin-top:50px}.rp .sign span{flex:1;border-top:1px solid #111;text-align:center;padding-top:4px}
+.rp .foot{text-align:center;color:#555;font-size:8.5pt;margin-top:22px}
+.rp.bw h1,.rp.bw h2{color:#000}.rp.bw th{background:#e6e6e6}.rp.bw .pb i{background:#444}
+@media print{body>*:not(#printArea){display:none!important}#printArea{display:block!important}body{background:#fff!important}}
+footer{text-align:center;color:var(--mute);padding:10px 0 30px;font-size:.85rem}
+
+/* ---- DEMIS theme overrides (maroon / gold) ---- */
+html,body{height:auto}
+body{background:var(--bg);font-family:'Noto Sans Sinhala',system-ui,sans-serif;line-height:1.6}
+header{background:linear-gradient(135deg,var(--brand-dark),var(--brand));color:#fff;padding:16px 22px;border-bottom:4px solid var(--gold);border-radius:10px;margin-bottom:18px}
+header h1{font-family:'Noto Serif Sinhala',serif;font-weight:700;font-size:clamp(1.05rem,2.6vw,1.4rem)}
+header p{font-size:.85rem;opacity:.88}
+main{max-width:none;padding:0}
+section{border-radius:10px;padding:18px 20px;margin-bottom:18px}
+h2,h3{font-family:'Noto Serif Sinhala',serif;color:var(--brand)}
+h2{font-size:1.02rem}
+h3{font-size:.95rem}
+select,input[type=text],textarea{border-radius:6px;background:#fff}
+select:focus,input:focus,textarea:focus{outline:none;border-color:var(--brand)}
+select:focus-visible,input:focus-visible,textarea:focus-visible,button:focus-visible,.drop:focus-within{outline:3px solid var(--gold);outline-offset:2px}
+button{border-radius:8px;font-weight:600;border-color:var(--brand);color:var(--brand)}
+button:hover{background:#f6eeee}
+button.pri{background:var(--brand);color:#fff}
+button.pri:hover{background:var(--brand-dark)}
+.drop{background:#fcf8f6;border-color:#d9c3c8}
+.drop.over,.drop:hover{border-color:var(--brand);background:var(--soft)}
+.m{background:#fcf8f6;border-left:4px solid var(--brand)}
+.m b{color:var(--brand-dark)}
+.m.good b,.m.good small{color:var(--good)}.m.bad b,.m.bad small{color:var(--bad)}
+th{background:var(--soft);color:var(--brand-dark)}
+.pbar i{background:linear-gradient(90deg,var(--gold),var(--brand))}
+.rp .pb i{background:#6F092E}
+.rp.bw .pb i{background:#444}
+@media(max-width:640px){main{padding:0}section{padding:14px 12px}.bar button{flex:1 1 45%}}
+
+/* ---- school branding ---- */
+header{display:flex;flex-direction:column;gap:6px}
+.hb{display:flex;align-items:center;gap:14px}
+.hlogo{height:58px;width:58px;object-fit:contain;flex:none;filter:drop-shadow(0 2px 5px rgba(0,0,0,.4))}
+header h1.sname{margin:0;font-size:clamp(1.15rem,3vw,1.6rem)}
+.tname{font-size:.85rem;opacity:.9}
+@media(max-width:640px){.hlogo{height:44px;width:44px}}
+.rp .lh{display:flex;align-items:center;gap:12px;border-bottom:3px solid #E8B400;padding-bottom:6px;margin-bottom:10px}
+.rp .lh img{height:60px;width:60px;object-fit:contain}
+.rp .lh .sn{font-size:18pt;font-weight:700;color:#6F092E;line-height:1.3}
+.rp.bw .lh{border-bottom-color:#000}.rp.bw .lh .sn{color:#000}
+
+/* ---- pie charts ---- */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-bottom:14px}
+.pgrid.top{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-bottom:8px}
+.pie{border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:#fcf8f6}
+.pie h4{margin:0 0 8px;font-size:.9rem;color:var(--brand-dark);line-height:1.4}
+.pie svg{max-width:100%;height:auto}
+.pleg{display:flex;flex-wrap:wrap;justify-content:center;gap:2px 10px;font-size:.76rem;color:var(--mute);margin-top:8px}
+.pleg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px}
+.pnote{font-size:.78rem;color:var(--mute);margin-top:6px}
+.rp .pgrid{grid-template-columns:repeat(3,1fr);gap:8px}
+.rp .pgrid.top{grid-template-columns:repeat(2,1fr)}
+.rp .pie{background:#fff;border:1px solid #8a9a92;border-radius:0;padding:6px;break-inside:avoid}
+.rp .pie h4{font-size:9.5pt;color:#111;margin:0 0 4px}
+.rp .pleg{font-size:8pt;color:#333}.rp .pnote{font-size:8pt;color:#333}
+</style>
+
+<header>
+  <div class="hb"><img class="hlogo" src="__LOGO__" alt=""><div><h1 class="sname">ධර්මරාජ විද්‍යාලය</h1><div class="tname">G.C.E. සා.පෙළ ප්‍රතිඵල විශ්ලේෂණ මධ්‍යස්ථානය</div></div></div>
+  <p>ප්‍රතිඵල ගොනුව උඩුගත කර, පෙරහන් තෝරා ක්ෂණිකව විශ්ලේෂණය බලන්න.</p>
+</header>
+<main>
+<section>
+  <h2>1. පෙරහන් සහ ප්‍රතිඵල Excel ගොනුව</h2>
+  <div class="filters">
+    <div><label for="fSchool">පාසලේ නම</label><select id="fSchool"><option value="">සියලු පාසල්</option></select></div>
+    <div><label for="fAbs">නොපැමිණි අයදුම්කරුවන්</label><select id="fAbs"><option value="with">නොපැමිණි අය සමඟ</option><option value="without">නොපැමිණි අය රහිතව</option></select></div>
+    <div><label for="fAtt">වාරය</label><select id="fAtt"><option value="">සියලු වාර (එකතුව)</option><option value="1">1 වන වාරය පමණි</option><option value="2">2 වන වාරය පමණි</option><option value="3">3 වන වාරය පමණි</option></select></div>
+    <div><label for="fGen">ස්ත්‍රී පුරුෂ භාවය</label><select id="fGen"><option value="">සියල්ල</option><option value="M">පුරුෂ (M)</option><option value="F">ස්ත්‍රී (F)</option></select></div>
+    <div><label for="fMed">මාධ්‍යය</label><select id="fMed"><option value="">සියලු මාධ්‍ය</option><option value="S">සිංහල (S)</option><option value="T">දෙමළ (T)</option><option value="E">ඉංග්‍රීසි (E)</option></select></div>
+    <div><label for="fPass">සමත්වීමේ නිර්ණායකය</label><select id="fPass">
+      <option value="3,6,none">සාමාර්ථ 3ක් සහ සමත් 6ක් (ඕනෑම විෂය)</option>
+      <option value="3,6,mlp">සාමාර්ථ 3ක් සහ සමත් 6ක් (ගණිතය සහ භාෂාව සමත්)</option>
+      <option value="3,6,mop">සාමාර්ථ 3ක් සහ සමත් 6ක් (ගණිතය හෝ භාෂාව සමත්)</option>
+      <option value="3,6,mlc">සාමාර්ථ 3ක් සහ සමත් 6ක් (ගණිතය සහ භාෂාව සාමාර්ථ)</option>
+      <option value="3,5,mlp">සාමාර්ථ 3ක් සහ සමත් 5ක් (ගණිතය සහ භාෂාව සමත්)</option>
+      <option value="3,5,mop">සාමාර්ථ 3ක් සහ සමත් 5ක් (ගණිතය හෝ භාෂාව සමත්)</option>
+      <option value="3,5,mlc">සාමාර්ථ 3ක් සහ සමත් 5ක් (ගණිතය සහ භාෂාව සාමාර්ථ)</option>
+    </select></div>
+  </div>
+  <label class="drop" id="drop">සා.පෙළ ප්‍රතිඵල Excel ගොනුව (.xlsx, .xls, .csv) මෙතැනට ඇද දමන්න, නැතහොත් ක්ලික් කරන්න<input type="file" id="file" accept=".xlsx,.xls,.csv"></label>
+  <div class="bar"><button id="sample">නියැදි දත්ත පූරණය කරන්න</button><button id="reset">යළි පිහිටුවන්න</button><button id="csv">හොඳම ප්‍රතිඵල (CSV) බාගන්න</button></div>
+  <div id="status">විභාග දෙපාර්තමේන්තු ප්‍රතිඵල පත්‍රිකාව (උදා: 32SS, 21 C, 44S+ ආකාරයේ කේත) හෝ සරල A, B, C, S, W ශ්‍රේණි සහිත ගොනුවක් භාවිතා කළ හැක. + යනු එම විෂයට නොපැමිණීමයි.</div>
+</section>
+
+<section>
+  <h2>සමස්ත විභාග කාර්යසාධනය</h2>
+  <div class="metrics" id="metrics"></div>
+</section>
+
+<section>
+  <h2>පාසලේ හොඳම ප්‍රතිඵල (විශිෂ්ට සාමාර්ථ ශ්‍රේණිගත කිරීම)</h2>
+  <div class="wrap"><table class="rank b"><thead><tr><th>9 A</th><th>8 A</th><th>7 A</th><th>6 A</th><th>5 A</th></tr></thead><tbody><tr id="bestRow"><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr></tbody></table></div>
+</section>
+
+<section>
+  <h2>විෂය සමත්වීමේ අනුපාත</h2>
+  <div class="wrap" id="ratios"></div>
+</section>
+
+<section>
+  <h2>2. විෂය අනුව සවිස්තරාත්මක විශ්ලේෂණය</h2>
+  <div class="grid" id="subjects"></div>
+</section>
+
+<section id="piesSec">
+  <h2>පයි සටහන් (Pie Charts)</h2>
+  <div class="pgrid top" id="pieTop"></div>
+  <h3>විෂය අනුව ශ්‍රේණි ව්‍යාප්තිය</h3>
+  <div class="pgrid" id="pieGrid"></div>
+</section>
+
+<section>
+  <h2>පාසලේ දුර්වල ප්‍රතිඵල (දුර්වලතා ශ්‍රේණිගත කිරීම)</h2>
+  <div class="wrap"><table class="rank w"><thead><tr><th>9 W</th><th>8 W</th><th>7 W</th><th>6 W</th><th>5 W</th></tr></thead><tbody><tr id="weakRow"><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr></tbody></table></div>
+</section>
+<section>
+  <h2>වාර්තා සහ බාගැනීම්</h2>
+  <p class="empty" style="margin-bottom:12px">වාර්තා සකස් වන්නේ ඉහත තෝරා ඇති පෙරහන් අනුවයි.</p>
+  <div class="bar" style="margin-top:0">
+    <button class="pri" id="bPdfC">PDF (වර්ණ)</button>
+    <button class="pri" id="bPdfB">PDF (කළු සුදු)</button>
+    <button class="pri" id="bPdfBest">හොඳම ප්‍රතිඵල PDF</button>
+    <button id="bXlsBest">හොඳම ප්‍රතිඵල Excel</button>
+    <button id="bXlsAll">සම්පූර්ණ Excel</button>
+  </div>
+  <h3>අභිරුචි වාර්තාව සකසන්න</h3>
+  <div class="filters">
+    <div><label for="rTitle">වාර්තාවේ මාතෘකාව</label><input type="text" id="rTitle" placeholder="G.C.E. සා.පෙළ ප්‍රතිඵල විශ්ලේෂණ වාර්තාව"></div>
+    <div><label for="rSchool">පාසලේ නම</label><input type="text" id="rSchool" placeholder="පාසලේ නම"></div>
+    <div><label for="rYear">විභාග වර්ෂය</label><input type="text" id="rYear" placeholder="උදා: 2025"></div>
+    <div><label for="rMinA">හොඳම සිසුන් ලැයිස්තුවට අවම A ගණන</label><select id="rMinA"><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select></div>
+    <div><label for="rOrient">පිටු දිශානතිය (PDF)</label><select id="rOrient"><option value="portrait">සිරස් (Portrait)</option><option value="landscape">තිරස් (Landscape)</option></select></div>
+    <div><label for="rColor">වර්ණ (PDF)</label><select id="rColor"><option value="color">වර්ණ</option><option value="bw">කළු සුදු</option></select></div>
+  </div>
+  <h3>අඩංගු කළ යුතු කොටස්</h3>
+  <div class="filters">
+    <label class="chk"><input type="checkbox" id="sMetrics" checked>සාරාංශ දර්ශක</label>
+    <label class="chk"><input type="checkbox" id="sBest" checked>හොඳම ප්‍රතිඵල ශ්‍රේණිගත කිරීම</label>
+    <label class="chk"><input type="checkbox" id="sWeak" checked>දුර්වල ප්‍රතිඵල ශ්‍රේණිගත කිරීම</label>
+    <label class="chk"><input type="checkbox" id="sRatios" checked>විෂය සමත් අනුපාත</label>
+    <label class="chk"><input type="checkbox" id="sSubjects" checked>විෂය අනුව ශ්‍රේණි බෙදීම</label>
+    <label class="chk"><input type="checkbox" id="sPies" checked> පයි සටහන්</label>
+    <label class="chk"><input type="checkbox" id="sBestList" checked>හොඳම ප්‍රතිඵල ලබා ගත් සිසුන්</label>
+    <label class="chk"><input type="checkbox" id="sFailList">අසමත් සිසුන්ගේ ලැයිස්තුව</label>
+    <label class="chk"><input type="checkbox" id="sAll">සියලු සිසුන්ගේ ප්‍රතිඵල</label>
+    <label class="chk"><input type="checkbox" id="rSign">අත්සන් කොටස් (PDF)</label>
+  </div>
+  <div style="margin-top:14px"><label for="rRemarks">වාර්තාවට එක් කිරීමට සටහන්</label><textarea id="rRemarks" rows="3"></textarea></div>
+  <div class="bar"><button class="pri" id="bPdfX">අභිරුචි PDF</button><button class="pri" id="bXlsX">අභිරුචි Excel</button></div>
+</section>
+
+<section id="namesSec" hidden>
+  <h2>3. හඳුනා නොගත් විෂය කේත</h2>
+  <p class="empty" style="margin-bottom:12px">මෙම කේත නිල විෂය ලැයිස්තුවේ නැත. නම ටයිප් කළ විට වගු සහ සටහන් ස්වයංක්‍රීයව යාවත්කාලීන වේ.</p>
+  <div class="filters" id="names"></div>
+</section>
+</main>
+<div id="printArea"></div><style id="pageStyle"></style>
+
+<script>
+const $=id=>document.getElementById(id);
+const SCHOOL_NAME='ධර්මරාජ විද්‍යාලය',SCHOOL_LOGO='__LOGO__';
+const letterhead=()=>'<div class="lh">'+(SCHOOL_LOGO?'<img src="'+SCHOOL_LOGO+'" alt="">':'')+'<div class="sn">'+SCHOOL_NAME+'</div></div>';
+const GR=['A','B','C','S','W'];
+const EMPTY_R='<p class="empty">ප්‍රතිඵල ගොනුවක් උඩුගත කරන්න.</p>';
+const DEF={11:'බුද්ධාගම',12:'සෛවනීතිය',14:'කතෝලික ධර්මය',15:'ක්‍රිස්තියානි ධර්මය',16:'ඉස්ලාම් ධර්මය',
+21:'සිංහල භාෂාව හා සාහිත්‍යය',22:'දෙමළ භාෂාව හා සාහිත්‍යය',31:'ඉංග්‍රීසි භාෂාව',32:'ගණිතය',33:'ඉතිහාසය',34:'විද්‍යාව',
+40:'සංගීතය (පෙරදිග)',41:'සංගීතය (බටහිර)',42:'සංගීතය (කර්නාටක)',43:'චිත්‍ර',44:'නර්තනය (ජාතික)',45:'නර්තනය (භරත)',
+46:'ඉංග්‍රීසි සාහිත්‍ය රසාස්වාදය',47:'සිංහල සාහිත්‍ය රසාස්වාදය',48:'දෙමළ සාහිත්‍ය රසාස්වාදය',49:'අරාබි සාහිත්‍ය රසාස්වාදය',
+50:'නාට්‍ය හා රංග කලාව (සිංහල)',51:'නාට්‍ය හා රංග කලාව (දෙමළ)',52:'නාට්‍ය හා රංග කලාව (ඉංග්‍රීසි)',
+60:'ව්‍යාපාර හා ගිණුම්කරණ අධ්‍යයනය',61:'භූගෝල විද්‍යාව',62:'පුරවැසි අධ්‍යාපනය',63:'ව්‍යවසායකත්ව අධ්‍යයනය',
+64:'දෙවන භාෂාව (සිංහල)',65:'දෙවන භාෂාව (දෙමළ)',66:'පාලි',67:'සංස්කෘත',68:'ප්‍රංශ',69:'ජර්මන්',70:'හින්දි',71:'ජපාන',72:'අරාබි',73:'කොරියානු',74:'චීන',75:'රුසියානු',
+80:'තොරතුරු හා සන්නිවේදන තාක්ෂණය',81:'කෘෂිකර්ම හා ආහාර තාක්ෂණය',82:'ජලජ ජීව සම්පත් තාක්ෂණය',84:'කලා හා ශිල්ප',85:'ගෘහ ආර්ථික විද්‍යාව',
+86:'සෞඛ්‍යය හා ශාරීරික අධ්‍යාපනය',87:'සන්නිවේදනය හා මාධ්‍ය අධ්‍යයනය',88:'නිර්මාණකරණය හා ඉදිකිරීම් තාක්ෂණය',89:'නිර්මාණකරණය හා යාන්ත්‍රික තාක්ෂණය',
+90:'නිර්මාණකරණය, විදුලි හා ඉලෙක්ට්‍රොනික තාක්ෂණය',92:'විද්‍යුත් ලේඛනකරණය හා කෙටි අත් ලිවීම (සිංහල)',93:'විද්‍යුත් ලේඛනකරණය හා කෙටි අත් ලිවීම (දෙමළ)',94:'විද්‍යුත් ලේඛනකරණය හා කෙටි අත් ලිවීම (ඉංග්‍රීසි)'};
+let rows=[],reg=[],custom={},lastBest=[];
+const norm=s=>String(s==null?'':s).trim();
+const isMathK=k=>k==='32'||/math|ගණිත/i.test(k);
+const isLangK=k=>k==='21'||k==='22'||/language\s*&\s*lit/i.test(k)||(/sinhala|tamil|language|සිංහල|දෙමළ|භාෂා/i.test(k)&&!/lit|සාහිත්‍ය|english|ඉංග්‍රීසි/i.test(k));
+const grpLabel=h=>/1st/i.test(h)?'I කාණ්ඩය':/2nd/i.test(h)?'II කාණ්ඩය':/3rd/i.test(h)?'III කාණ්ඩය':h;
+const nameOf=e=>custom[e.k]||DEF[e.k]||(e.coded?grpLabel(e.h)+' · '+e.k:e.k);
+
+function gradeOf(v){
+  v=norm(v).toUpperCase();
+  if(v==='')return '';
+  if(GR.includes(v))return v;
+  if(v==='F')return 'W';
+  if(['+','-','AB','ABS','ABSENT'].includes(v))return 'AB';
+  return null;
+}
+/* null = හිස්, undefined = හඳුනාගත නොහැක. "32SS" = කේතය 32, මාධ්‍යය S, ශ්‍රේණිය S; "21 C 3" = කේතය 21, ශ්‍රේණිය C */
+function cellOf(v){
+  if(norm(v)==='')return null;
+  const s=String(v),m=s.match(/^(\d{2})[A-Za-z ](.)/);
+  if(m){const g=gradeOf(m[2]);return g?{k:m[1],g}:undefined;}
+  const g=gradeOf(s);return g?{k:null,g}:undefined;
+}
+function gender(v){v=norm(v).toLowerCase();if(/^f|female|ස්ත්‍රී|ගැහැණු/.test(v))return 'F';if(/^m|පුරුෂ|පිරිමි/.test(v))return 'M';return '';}
+function medium(v){v=norm(v).toLowerCase();if(/^s|සිංහල/.test(v))return 'S';if(/^t|දෙමළ/.test(v))return 'T';if(/^e|ඉංග්‍රීසි/.test(v))return 'E';return '';}
+
+function parse(aoa){
+  const h=aoa.findIndex(r=>r.filter(c=>norm(c)!=='').length>=4);
+  if(h<0)return setStatus('ගොනුවේ තීරු සහිත දත්ත හමු නොවීය.',1);
+  const head=aoa[h].map(norm);
+  const body=aoa.slice(h+1).filter(r=>r.some(c=>norm(c)!==''));
+  const find=re=>head.findIndex(x=>re.test(x));
+  const sI=find(/school|පාසල/i),
+    nI=head.findIndex((x,i)=>i!==sI&&/name|නම/i.test(x)),
+    iI=find(/index|අංක/i),gI=find(/gender|sex|ස්ත්‍රී|ලිංග/i),mI=find(/medium|මාධ්‍ය/i),aI=find(/attempt|වාර/i);
+  const meta=[sI,nI,iI,gI,mI,aI];
+  const cols=[];
+  head.forEach((name,c)=>{
+    if(meta.includes(c)||!name)return;
+    const v=body.map(r=>cellOf(r[c])).filter(x=>x!==null);
+    if(v.length&&v.filter(x=>x).length/v.length>=.6&&v.some(x=>x&&x.g!=='AB'))cols.push(c);
+  });
+  if(!cols.length)return setStatus('ශ්‍රේණි සහිත විෂය තීරු හමු නොවීය. ගොනුවේ ශීර්ෂ පේළිය සහ ශ්‍රේණි (A, B, C, S, W) පරීක්ෂා කරන්න.',1);
+  const seen={};reg=[];
+  rows=body.map(r=>{
+    const s=[];
+    cols.forEach(c=>{
+      const x=cellOf(r[c]);if(!x)return;
+      const k=x.k||head[c];
+      if(!seen[k]){seen[k]=1;reg.push({k,h:head[c],coded:!!x.k,c});}
+      s.push({k,g:x.g});
+    });
+    return {school:sI>=0?norm(r[sI]):'',idx:iI>=0?norm(r[iI]):'',name:nI>=0?norm(r[nI]):'',
+      gender:gI>=0?gender(r[gI]):'',medium:mI>=0?medium(r[mI]):'',
+      attempt:aI>=0?(norm(r[aI]).match(/\d/)||['1'])[0]:'1',s};
+  });
+  reg.sort((a,b)=>a.c-b.c||(a.k<b.k?-1:1));
+  const hasSchool=sI>=0&&rows.some(r=>r.school);
+  $('fSchool').parentElement.style.display=hasSchool?'':'none';
+  const sel=$('fSchool');sel.length=1;
+  [...new Set(rows.map(r=>r.school).filter(Boolean))].sort().forEach(s=>sel.add(new Option(s,s)));
+  buildNames();
+  setStatus('අයදුම්කරුවන් '+rows.length+' දෙනෙකු සහ විෂය '+reg.length+' ක් හඳුනාගත්තා ('+reg.map(nameOf).join(', ')+').'+
+    (!reg.some(e=>isMathK(e.k))?' ගණිත විෂය හමු නොවීය.':''));
+  render();
+}
+function buildNames(){
+  const list=reg.filter(e=>e.coded&&!DEF[e.k]);
+  $('namesSec').hidden=!list.length;
+  $('names').innerHTML=list.map(e=>'<div><label for="n'+e.k+'">'+esc(grpLabel(e.h))+' · කේතය '+e.k+'</label><input type="text" id="n'+e.k+'" data-k="'+e.k+'" value="'+esc(custom[e.k]||DEF[e.k]||'')+'" placeholder="විෂයයේ නම ටයිප් කරන්න"></div>').join('');
+  $('names').querySelectorAll('input').forEach(i=>i.oninput=()=>{custom[i.dataset.k]=i.value.trim();render();});
+}
+function setStatus(t,e){const s=$('status');s.textContent=t;s.className=e?'err':'';}
+
+const isAbsent=r=>r.s.every(x=>x.g==='AB');
+function filtered(){
+  const sc=$('fSchool').value,ab=$('fAbs').value,at=$('fAtt').value,ge=$('fGen').value,me=$('fMed').value;
+  return rows.filter(r=>(!sc||r.school===sc)&&(!at||r.attempt===at)&&(!ge||r.gender===ge)&&(!me||r.medium===me)&&(ab==='with'||!isAbsent(r)));
+}
+function passes(r,cfg){
+  const [cr,ps,req]=cfg.split(',');
+  const credit=x=>x==='A'||x==='B'||x==='C',pass=x=>credit(x)||x==='S';
+  const g=r.s.map(x=>x.g);
+  if(g.filter(credit).length<+cr||g.filter(pass).length<+ps)return false;
+  const m=(r.s.find(x=>isMathK(x.k))||{}).g||'',l=(r.s.find(x=>isLangK(x.k))||{}).g||'';
+  if(req==='mlp')return pass(m)&&pass(l);
+  if(req==='mop')return pass(m)||pass(l);
+  if(req==='mlc')return credit(m)&&credit(l);
+  return true;
+}
+const count=(r,g)=>r.s.filter(x=>x.g===g).length;
+const pct=(a,b)=>b?(a/b*100).toFixed(1)+'%':'0%';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const card=(l,v,p,c)=>'<div class="m '+(c||'')+'"><b>'+v+(p?'<small>'+p+'</small>':'')+'</b><span>'+l+'</span></div>';
+
+
+/* ===== Pie charts (inline SVG: prints in PDF, no library needed) ===== */
+const PCOL={A:'#1A7A60',B:'#2C8FC9',C:'#E8B400',S:'#C9761B',W:'#B03A2E'};
+function pieSvg(items,size){
+  const t=items.reduce((a,x)=>a+x.v,0),r=size/2-2,c=size/2;
+  let o='';
+  if(!t)o='<circle cx="'+c+'" cy="'+c+'" r="'+r+'" fill="#EBE0DE"/>';
+  else if(items.filter(x=>x.v>0).length===1){
+    const x=items.find(x=>x.v>0);
+    o='<circle cx="'+c+'" cy="'+c+'" r="'+r+'" fill="'+x.c+'"><title>'+esc(x.l)+': '+x.v+' (100%)</title></circle>'+
+      '<text x="'+c+'" y="'+(c+4)+'" text-anchor="middle" font-size="12" font-weight="700" fill="'+(x.tc||'#fff')+'">100%</text>';
+  }else{
+    let a0=-Math.PI/2;
+    items.forEach(x=>{
+      if(!x.v)return;
+      const ang=x.v/t*2*Math.PI,a1=a0+ang,p=(n,a)=>(c+n*Math.cos(a)).toFixed(2)+' '+(c+n*Math.sin(a)).toFixed(2);
+      o+='<path d="M'+c+' '+c+' L'+p(r,a0)+' A'+r+' '+r+' 0 '+(ang>Math.PI?1:0)+' 1 '+p(r,a1)+' Z" fill="'+x.c+'" stroke="#fff" stroke-width="1.5"><title>'+esc(x.l)+': '+x.v+' ('+pct(x.v,t)+')</title></path>';
+      if(x.v/t>=.07){const m=a0+ang/2;o+='<text x="'+(c+r*.62*Math.cos(m)).toFixed(1)+'" y="'+(c+r*.62*Math.sin(m)+4).toFixed(1)+'" text-anchor="middle" font-size="'+(size>150?12:10)+'" font-weight="700" fill="'+(x.tc||'#fff')+'">'+Math.round(x.v/t*100)+'%</text>';}
+      a0=a1;
+    });
+  }
+  return '<svg viewBox="0 0 '+size+' '+size+'" width="'+size+'" height="'+size+'" role="img">'+o+'</svg>';
+}
+function pieCard(title,items,size,note){
+  const t=items.reduce((a,x)=>a+x.v,0);
+  return '<div class="pie"><h4>'+esc(title)+'</h4>'+pieSvg(items,size)+'<div class="pleg">'+
+    items.map(x=>'<span><i style="background:'+x.c+'"></i>'+esc(x.l)+' '+x.v+' ('+pct(x.v,t)+')</span>').join('')+'</div>'+
+    (note?'<div class="pnote">'+note+'</div>':'')+'</div>';
+}
+const gItems=c=>GR.map(g=>({l:g,v:c[g]||0,c:PCOL[g],tc:g==='C'?'#3D0016':'#fff'}));
+function pieBlocks(d,size){
+  const all={A:0,B:0,C:0,S:0,W:0};d.stats.forEach(x=>GR.forEach(g=>all[g]+=x.c[g]));
+  const top=pieCard('සමත් / අසමත් (Pass / Fail)',[{l:'සමත්',v:d.ok.size,c:'#1A7A60'},{l:'අසමත්',v:d.fail.length,c:'#B03A2E'}],size+30)+
+            pieCard('සමස්ත ශ්‍රේණි ව්‍යාප්තිය',gItems(all),size+30);
+  const per=d.stats.map(x=>pieCard(x.s,gItems(x.c),size,'සිසුන් '+x.n+' • සමත් '+pct(x.ps,x.n))).join('');
+  return '<div class="pgrid top">'+top+'</div><div class="pgrid">'+per+'</div>';
+}
+function renderPies(){
+  if(!rows.length){$('pieTop').innerHTML=EMPTY_R;$('pieGrid').innerHTML='';return;}
+  const d=analyze(),all={A:0,B:0,C:0,S:0,W:0};d.stats.forEach(x=>GR.forEach(g=>all[g]+=x.c[g]));
+  $('pieTop').innerHTML=pieCard('සමත් / අසමත් (Pass / Fail)',[{l:'සමත්',v:d.ok.size,c:'#1A7A60'},{l:'අසමත්',v:d.fail.length,c:'#B03A2E'}],180,'පෙනී සිටි සිසුන් '+d.sat.length)+
+                        pieCard('සමස්ත ශ්‍රේණි ව්‍යාප්තිය (සියලු විෂය)',gItems(all),180);
+  $('pieGrid').innerHTML=d.stats.map(x=>pieCard(x.s,gItems(x.c),150,'සිසුන් '+x.n+' • සමත් '+pct(x.ps,x.n))).join('');
+}
+
+function render(){renderPies();
+  const f=filtered(),sat=f.filter(r=>!isAbsent(r));
+  const pass=sat.filter(r=>passes(r,$('fPass').value)).length,fail=sat.length-pass;
+  $('metrics').innerHTML=card('මුළු අයදුම්කරුවන්',f.length,'')+card('විභාගයට පෙනී සිටි ගණන',sat.length,pct(sat.length,f.length))+
+    card('සමත් ප්‍රමාණය',pass,pct(pass,sat.length),'good')+card('අසමත් ප්‍රමාණය',fail,pct(fail,sat.length),'bad');
+  const lv=[9,8,7,6,5],n=(r,g,k)=>k===9?count(r,g)>=9:count(r,g)===k;
+  lastBest=sat.filter(r=>count(r,'A')>=5);
+  $('bestRow').innerHTML=lv.map(k=>'<td>'+sat.filter(r=>n(r,'A',k)).length+'</td>').join('');
+  $('weakRow').innerHTML=lv.map(k=>'<td>'+sat.filter(r=>n(r,'W',k)).length+'</td>').join('');
+  if(!rows.length){$('ratios').innerHTML=EMPTY_R;$('subjects').innerHTML=EMPTY_R;return;}
+  const stats=reg.map(e=>{
+    const c={A:0,B:0,C:0,S:0,W:0};let t=0;
+    sat.forEach(r=>r.s.forEach(x=>{if(x.k===e.k&&c[x.g]!==undefined){c[x.g]++;t++;}}));
+    return {s:nameOf(e),c,n:t,ps:c.A+c.B+c.C+c.S};
+  }).filter(x=>x.n);
+  $('ratios').innerHTML='<table><thead><tr><th>විෂයය</th><th>පෙනී සිටි</th><th>සමත්</th><th>සමත් අනුපාතය</th><th></th></tr></thead><tbody>'+
+    stats.map(x=>{const p=x.n?x.ps/x.n*100:0;return '<tr><td>'+esc(x.s)+'</td><td>'+x.n+'</td><td>'+x.ps+'</td><td>'+p.toFixed(1)+'%</td><td><div class="pbar"><i style="width:'+p+'%"></i></div></td></tr>';}).join('')+'</tbody></table>';
+  $('subjects').innerHTML=stats.map(x=>'<div class="sub"><h4>'+esc(x.s)+'</h4><div class="stack">'+
+    GR.map(g=>'<i class="g'+g+'" style="width:'+(x.n?x.c[g]/x.n*100:0)+'%" title="'+g+': '+x.c[g]+'"></i>').join('')+'</div><div class="leg">'+
+    GR.map(g=>'<span><b>'+g+'</b> '+x.c[g]+' ('+pct(x.c[g],x.n)+')</span>').join('')+
+    '</div><p class="empty" style="margin-top:8px;font-size:.85rem">පෙනී සිටි '+x.n+' · සමත් අනුපාතය '+pct(x.ps,x.n)+'</p></div>').join('');
+}
+
+function readFile(file){
+  const rd=new FileReader();
+  rd.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      let best=[];
+      wb.SheetNames.forEach(n=>{const a=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:''});if(a.length>best.length)best=a;});
+      parse(best);
+    }catch(err){setStatus('ගොනුව කියවීමට නොහැකි විය. එය .xlsx හෝ .csv ලෙස සුරකින්න.',1);}
+  };
+  rd.readAsArrayBuffer(file);
+}
+$('file').onchange=e=>e.target.files[0]&&readFile(e.target.files[0]);
+const dz=$('drop');
+['dragover','dragenter'].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.add('over')}));
+['dragleave','drop'].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.remove('over')}));
+dz.addEventListener('drop',e=>e.dataTransfer.files[0]&&readFile(e.dataTransfer.files[0]));
+['fSchool','fAbs','fAtt','fGen','fMed','fPass'].forEach(id=>$(id).onchange=render);
+
+$('reset').onclick=()=>{
+  rows=[];reg=[];custom={};lastBest=[];$('file').value='';
+  ['fSchool','fAtt','fGen','fMed','fPass'].forEach(id=>$(id).selectedIndex=0);$('fAbs').value='with';$('fSchool').length=1;
+  $('fSchool').parentElement.style.display='';$('namesSec').hidden=true;
+  setStatus('යළි පිහිටුවන ලදී. ප්‍රතිඵල ගොනුවක් උඩුගත කරන්න.');render();
+};
+$('csv').onclick=()=>{
+  if(!lastBest.length){setStatus('බාගැනීමට A 5ක් හෝ ඊට වැඩි සිසුන් නොමැත.',1);return;}
+  const out=[['Index','Name','School','As']].concat([...lastBest].sort((a,b)=>count(b,'A')-count(a,'A')).map(r=>[r.idx,r.name,r.school,count(r,'A')]));
+  const t='\ufeff'+out.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));a.download='best_results.csv';a.click();
+};
+$('sample').onclick=()=>{
+  const main=[['11','S'],['21',' '],['31',' '],['34','S'],['32','S'],['33','S']],grp=[['60','62','61'],['43','44','40'],['85','86','80']];
+  const pick=a=>a[Math.floor(Math.random()*a.length)];
+  const aoa=[['Name OF the Candidate','Attempt No','Gender','Medium','Index Number','Religion','Language & Literature','English language','Science','Mathematics','History','1st Subject Group','2nd Subject Group','3rd Subject Group','Grade Count']];
+  for(let i=1;i<=120;i++){
+    const b=Math.random(),gr=()=>{const x=Math.random()*.8+b*.6;return Math.random()<.03?'+':x>1.1?'A':x>.9?'B':x>.65?'C':x>.45?'S':'W';};
+    aoa.push(['Student '+i,i%9?1:2,i%2?'M':'F','S',52540000+i,...main.map(([c,m])=>c+m+gr()),...grp.map(g=>pick(g)+'S'+gr()),'0 0 0 0 0']);
+  }
+  parse(aoa);
+};
+/* ===== වාර්තා (PDF / Excel / අභිරුචි) ===== */
+const SEC=['Metrics','Best','Weak','Ratios','Subjects','Pies','BestList','FailList','All'];
+const FULL={sMetrics:1,sBest:1,sWeak:1,sRatios:1,sSubjects:1,sPies:1,sBestList:1,sFailList:0,sAll:0};
+const BESTONLY={sMetrics:0,sBest:1,sWeak:0,sRatios:0,sSubjects:0,sPies:0,sBestList:1,sFailList:0,sAll:0};
+const EVERY={sMetrics:1,sBest:1,sWeak:1,sRatios:1,sSubjects:1,sPies:1,sBestList:1,sFailList:1,sAll:1};
+const cell=y=>(y&&typeof y==='object')?y.h:esc(y);
+const tbl=(h,r)=>'<table><thead><tr>'+h.map(x=>'<th>'+esc(x)+'</th>').join('')+'</tr></thead><tbody>'+
+  (r.length?r.map(x=>'<tr>'+x.map(y=>'<td>'+cell(y)+'</td>').join('')+'</tr>').join(''):'<tr><td colspan="'+h.length+'">දත්ත නොමැත</td></tr>')+'</tbody></table>';
+const gr=x=>x===undefined?'-':x==='AB'?'+':x;
+function filterText(){return ['fSchool','fAbs','fAtt','fGen','fMed','fPass'].map(id=>{const s=$(id);return s.selectedOptions&&s.selectedOptions[0]?s.selectedOptions[0].text:'';}).filter(Boolean).join(' | ');}
+function needData(){if(!rows.length){setStatus('වාර්තාවක් සෑදීමට පළමුව ප්‍රතිඵල ගොනුවක් උඩුගත කරන්න.',1);return false;}return true;}
+function opts(over){
+  over=over||{};
+  const o={title:$('rTitle').value.trim()||over.title||'G.C.E. සා.පෙළ ප්‍රතිඵල විශ්ලේෂණ වාර්තාව',school:$('rSchool').value.trim(),year:$('rYear').value.trim(),
+    remarks:$('rRemarks').value.trim(),sign:$('rSign').checked,minA:+$('rMinA').value||5,orient:$('rOrient').value,bw:$('rColor').value==='bw'};
+  SEC.forEach(n=>o['s'+n]=$('s'+n).checked);
+  Object.keys(over).forEach(k=>{if(k!=='title')o[k]=over[k];});
+  return o;
+}
+function analyze(){
+  const f=filtered(),sat=f.filter(r=>!isAbsent(r)),cfg=$('fPass').value;
+  const ok=new Set(sat.filter(r=>passes(r,cfg)));
+  const lv=[9,8,7,6,5],cnt=(g,k)=>sat.filter(r=>k===9?count(r,g)>=9:count(r,g)===k).length;
+  const stats=reg.map(e=>{
+    const c={A:0,B:0,C:0,S:0,W:0};let n=0;
+    sat.forEach(r=>r.s.forEach(x=>{if(x.k===e.k&&c[x.g]!==undefined){c[x.g]++;n++;}}));
+    return {k:e.k,s:nameOf(e),c,n,ps:c.A+c.B+c.C+c.S};
+  }).filter(x=>x.n);
+  return {f,sat,ok,fail:sat.filter(r=>!ok.has(r)),best:lv.map(k=>cnt('A',k)),weak:lv.map(k=>cnt('W',k)),stats};
+}
+const byName=(a,b)=>String(a.name).localeCompare(String(b.name));
+const HL=['#','දර්ශක අංකය','නම','ස්ත්‍රී/පු','වාරය','A','B','C','S','W'];
+const listRows=(arr,g)=>arr.map((r,i)=>[i+1,r.idx,r.name,r.gender,r.attempt,...GR.map(x=>count(r,x))]);
+const bestList=(d,m)=>listRows(d.sat.filter(r=>count(r,'A')>=m).sort((a,b)=>count(b,'A')-count(a,'A')||byName(a,b)));
+const failList=d=>listRows([...d.fail].sort((a,b)=>count(b,'W')-count(a,'W')||byName(a,b)));
+function allHead(){return ['දර්ශක අංකය','නම','ස්ත්‍රී/පු','වාරය',...reg.map(e=>e.k),'ප්‍රතිඵලය'];}
+function allRows(d){return d.f.map(r=>{const m={};r.s.forEach(x=>m[x.k]=x.g);
+  return [r.idx,r.name,r.gender,r.attempt,...reg.map(e=>gr(m[e.k])),isAbsent(r)?'නොපැමිණි':d.ok.has(r)?'සමත්':'අසමත්'];});}
+const rank=(t,a)=>tbl(['9 '+t,'8 '+t,'7 '+t,'6 '+t,'5 '+t],[a]);
+const fmt=(a,b)=>a+' ('+pct(a,b)+')';
+
+function buildReport(o){
+  const d=analyze(),h=[];
+  h.push(letterhead()+'<h1>'+esc(o.title)+'</h1><p class="meta">'+[o.school&&'<b>'+esc(o.school)+'</b>',o.year&&'විභාග වර්ෂය: '+esc(o.year),'දිනය: '+new Date().toISOString().slice(0,10)].filter(Boolean).join(' &nbsp;|&nbsp; ')+'</p><p class="flt">පෙරහන්: '+esc(filterText())+'</p>');
+  if(o.sMetrics)h.push('<h2>සාරාංශ දර්ශක</h2>'+tbl(['මුළු අයදුම්කරුවන්','පෙනී සිටි ගණන','සමත් ප්‍රමාණය','අසමත් ප්‍රමාණය'],[[d.f.length,fmt(d.sat.length,d.f.length),fmt(d.ok.size,d.sat.length),fmt(d.fail.length,d.sat.length)]]));
+  if(o.sBest)h.push('<h2>හොඳම ප්‍රතිඵල ශ්‍රේණිගත කිරීම</h2>'+rank('A',d.best));
+  if(o.sWeak)h.push('<h2>දුර්වල ප්‍රතිඵල ශ්‍රේණිගත කිරීම</h2>'+rank('W',d.weak));
+  if(o.sRatios)h.push('<h2>විෂය සමත්වීමේ අනුපාත</h2>'+tbl(['විෂයය','පෙනී සිටි','සමත්','අනුපාතය',''],d.stats.map(x=>[x.s,x.n,x.ps,pct(x.ps,x.n),{h:'<div class="pb"><i style="width:'+(x.ps/x.n*100)+'%"></i></div>'}])));
+  if(o.sSubjects)h.push('<h2>විෂය අනුව ශ්‍රේණි බෙදීම</h2>'+tbl(['විෂයය','A','B','C','S','W'],d.stats.map(x=>[x.s,...GR.map(g=>fmt(x.c[g],x.n))])));
+  if(o.sPies)h.push('<h2>පයි සටහන්</h2>'+pieBlocks(d,130));
+  if(o.sBestList)h.push('<h2>හොඳම ප්‍රතිඵල ලබා ගත් සිසුන් (A '+o.minA+' ක් හෝ වැඩි)</h2>'+tbl(HL,bestList(d,o.minA)));
+  if(o.sFailList)h.push('<h2>අසමත් සිසුන්ගේ ලැයිස්තුව</h2>'+tbl(HL,failList(d)));
+  if(o.sAll)h.push('<h2>සියලු සිසුන්ගේ ප්‍රතිඵල</h2>'+tbl(allHead(),allRows(d))+'<p class="flt">විෂය කේත: '+reg.map(e=>esc(e.k)+' – '+esc(nameOf(e))).join('; ')+' &nbsp;(+ = නොපැමිණි)</p>');
+  if(o.remarks)h.push('<h2>සටහන්</h2><p class="rem">'+esc(o.remarks).replace(/\n/g,'<br>')+'</p>');
+  if(o.sign)h.push('<div class="sign"><span>සකස් කළේ</span><span>අංශ ප්‍රධානී</span><span>විදුහල්පති</span></div>');
+  h.push('<p class="foot">ප්‍රතිඵල විශ්ලේෂණ පද්ධතිය</p>');
+  return h.join('');
+}
+function printReport(o){
+  if(!needData())return;
+  $('printArea').className='rp'+(o.bw?' bw':'');
+  $('printArea').innerHTML=buildReport(o);
+  $('pageStyle').textContent='@page{size:A4 '+o.orient+';margin:12mm}';
+  setStatus('මුද්‍රණ කවුළුව විවෘත වේ. ගමනාන්තය ලෙස "PDF ලෙස සුරකින්න" (Save as PDF) තෝරන්න.');
+  setTimeout(()=>window.print(),150);
+}
+function excelReport(o){
+  if(!needData())return;
+  const d=analyze(),wb=XLSX.utils.book_new();let n=0;
+  const add=(name,aoa,w)=>{const ws=XLSX.utils.aoa_to_sheet(aoa);if(w)ws['!cols']=w.map(x=>({wch:x}));XLSX.utils.book_append_sheet(wb,ws,name);n++;};
+  const meta=[[SCHOOL_NAME],[o.title],[o.school],['විභාග වර්ෂය',o.year],['පෙරහන්',filterText()],[]];
+  if(o.sMetrics)add('සාරාංශය',[...meta,['මුළු අයදුම්කරුවන්',d.f.length],['පෙනී සිටි ගණන',d.sat.length],['සමත් ප්‍රමාණය',d.ok.size],['සමත් %',+(d.sat.length?d.ok.size/d.sat.length*100:0).toFixed(1)],['අසමත් ප්‍රමාණය',d.fail.length],...(o.remarks?[[],['සටහන්',o.remarks]]:[])],[28,60]);
+  if(o.sBest||o.sWeak){const a=[['','9','8','7','6','5']];if(o.sBest)a.push(['A ගණන',...d.best]);if(o.sWeak)a.push(['W ගණන',...d.weak]);add('ශ්‍රේණිගත කිරීම',a,[14,8,8,8,8,8]);}
+  if(o.sRatios||o.sSubjects)add('විෂය විශ්ලේෂණය',[['විෂයය','පෙනී සිටි','A','B','C','S','W','සමත්','සමත් %'],...d.stats.map(x=>[x.s,x.n,...GR.map(g=>x.c[g]),x.ps,+(x.ps/x.n*100).toFixed(1)])],[42,10,6,6,6,6,6,8,10]);
+  if(o.sBestList)add('හොඳම සිසුන්',[HL,...bestList(d,o.minA)],[5,14,48,10,8,5,5,5,5,5]);
+  if(o.sFailList)add('අසමත් සිසුන්',[HL,...failList(d)],[5,14,48,10,8,5,5,5,5,5]);
+  if(o.sAll)add('සියලු ප්‍රතිඵල',[['දර්ශක අංකය','නම','ස්ත්‍රී/පු','වාරය',...reg.map(e=>e.k+' '+nameOf(e)),'ප්‍රතිඵලය'],...allRows(d)],[14,48,10,8]);
+  if(!n)return setStatus('අභිරුචි වාර්තාවේ අඩංගු කිරීමට අවම වශයෙන් එක් කොටසක් තෝරන්න.',1);
+  XLSX.writeFile(wb,'OL_Report_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  setStatus('Excel වාර්තාව සකස් කරන ලදී ('+n+' පත්‍ර).');
+}
+$('bPdfC').onclick=()=>printReport(opts({...FULL,bw:false}));
+$('bPdfB').onclick=()=>printReport(opts({...FULL,bw:true}));
+$('bPdfBest').onclick=()=>printReport(opts({...BESTONLY,title:'හොඳම ප්‍රතිඵල වාර්තාව'}));
+$('bXlsBest').onclick=()=>excelReport(opts({...BESTONLY,title:'හොඳම ප්‍රතිඵල වාර්තාව'}));
+$('bXlsAll').onclick=()=>excelReport(opts(EVERY));
+$('bPdfX').onclick=()=>printReport(opts());
+$('bXlsX').onclick=()=>excelReport(opts());
+render();
+</script>
+
+</template>
+<script>
+/* O/L Analysis tool: admin only, loaded lazily inside an isolated frame */
+(function(){
+  var loaded=false, fr=document.getElementById('olFrame'), tplEl=document.getElementById('olToolTpl');
+  var btn=document.querySelector('nav.tabs button[data-tab="olanalysis"]');
+  if(!fr||!tplEl||!btn)return;
+  function load(){
+    if(loaded||document.body.dataset.role!=='admin')return;   // never load for non-admins
+    loaded=true;
+    fr.addEventListener('load',function(){
+      var d=fr.contentDocument; if(!d||!d.body)return;
+      function fit(){fr.style.height=Math.max(640,d.body.offsetHeight+4)+'px';}
+      try{new ResizeObserver(fit).observe(d.body);}catch(e){setInterval(fit,700);}
+      fit();
+      /* keep the app's idle-timeout alive while the admin works inside the frame */
+      var last=0;
+      ['mousemove','mousedown','keydown','scroll','touchstart','click'].forEach(function(ev){
+        d.addEventListener(ev,function(){var n=Date.now();if(n-last<1000)return;last=n;document.dispatchEvent(new Event('mousemove'));},{passive:true});
+      });
+    });
+    var li=document.querySelector('.header-brand img'),logo=li?li.src:'';
+    fr.srcdoc='<!DOCTYPE html><html lang="si"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>'+tplEl.innerHTML.split('__LOGO__').join(logo)+'</body></html>';
+  }
+  btn.addEventListener('click',load);
 })();
 </script>
 </body>
