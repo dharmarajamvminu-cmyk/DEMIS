@@ -940,7 +940,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 import {
   getFirestore, collection, addDoc, setDoc, doc, deleteDoc,
-  onSnapshot, query, orderBy, where
+  onSnapshot, query, orderBy, where, getDoc, getDocs
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -971,6 +971,17 @@ const isAdmin = ()=> !!ME && ME.role === 'admin';
 const isCT    = ()=> !!ME && ME.role === 'classTeacher';
 const isSubj  = ()=> !!ME && ME.role === 'subjectTeacher';
 const hooks = {};
+
+// ---------- O/L results archive (one document per exam year) — used by the O/L analysis frame ----------
+// Needs a Firestore rule for collection 'olResults' (admin only). If it is missing the frame falls back to browser storage.
+window.olStore = {
+  _chk(){ if(!isAdmin()) throw new Error('admin only'); },
+  async list(){ this._chk(); const snap = await getDocs(collection(db,'olResults'));
+    return snap.docs.map(d=>{ const x=d.data(); return { id:d.id, year:x.year||d.id, count:x.count||0, savedAt:x.savedAt||0 }; }); },
+  async get(id){ this._chk(); const s = await getDoc(doc(db,'olResults',id)); return s.exists() ? s.data() : null; },
+  async save(id, payload){ this._chk(); await setDoc(doc(db,'olResults',id), { ...payload, savedAt:Date.now(), savedBy:(ME&&ME.email)||'' }); },
+  async remove(id){ this._chk(); await deleteDoc(doc(db,'olResults',id)); }
+};
 
 // Firestore listeners are registered up-front but only started once the user's role is known,
 // and each role only subscribes to the documents it is allowed to read.
@@ -3243,7 +3254,7 @@ function filterRows(gf, src, g, c){
 </script>
 
 <template id="olToolTpl">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Sinhala:wght@600;700&family=Noto+Sans+Sinhala:wght@400;600;800&display=swap" rel="stylesheet"><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Sinhala:wght@600;700&family=Noto+Sans+Sinhala:wght@400;600;800&display=swap" rel="stylesheet"><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{--bg:#F6ECE6;--card:#FFFFFF;--ink:#241417;--mute:#6B5B5E;--line:#EBE0DE;--brand:#6F092E;--brand-dark:#3D0016;--gold:#E8B400;--good:#1A7A60;--bad:#B03A2E;--soft:#f6eeee}
 *{box-sizing:border-box}
@@ -3363,6 +3374,72 @@ header h1.sname{margin:0;font-size:clamp(1.15rem,3vw,1.6rem)}
 .rp .pie{background:#fff;border:1px solid #8a9a92;border-radius:0;padding:6px;break-inside:avoid}
 .rp .pie h4{font-size:9.5pt;color:#111;margin:0 0 4px}
 .rp .pleg{font-size:8pt;color:#333}.rp .pnote{font-size:8pt;color:#333}
+
+/* ---- individual result sheets ---- */
+input[type=date]{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);font:inherit}
+input[type=file]{width:100%;font:inherit;font-size:.85rem}
+.sigbox{margin-top:8px;display:flex;align-items:center;gap:10px;min-height:48px;flex-wrap:wrap}
+.sigbox img{max-height:56px;max-width:180px;border:1px dashed var(--line);background:#fff;padding:2px}
+#sheetPrev{margin-top:6px}
+.pvw{overflow:hidden;border:1px solid var(--line);box-shadow:0 2px 10px rgba(0,0,0,.12);margin:0 auto;background:#fff}
+.pvi{transform-origin:0 0;width:794px}
+#isStatus{margin-top:12px;font-size:.9rem;color:var(--mute)}
+#isStatus.err{color:var(--bad)}
+#sheetHost{position:fixed;left:-99999px;top:0;width:794px;pointer-events:none}
+.shx{width:794px;height:1123px;box-sizing:border-box;background:#fff;color:#241417;position:relative;overflow:hidden;font-family:'Noto Sans Sinhala','Iskoola Pota','Nirmala UI',sans-serif;font-size:14px;line-height:1.5;padding:34px 44px 30px;display:flex;flex-direction:column;text-align:left}
+.shx *{box-sizing:border-box}
+.shx .fr{position:absolute;left:14px;top:14px;right:14px;bottom:14px;border:3px solid #6F092E;pointer-events:none}
+.shx .fr2{position:absolute;left:20px;top:20px;right:20px;bottom:20px;border:1px solid #E8B400;pointer-events:none}
+.shx .wm{position:absolute;left:50%;top:52%;width:440px;height:440px;margin:-220px 0 0 -220px;opacity:.07}
+.shx .in{position:relative;z-index:1;display:flex;flex-direction:column;flex:1}
+.shx .lh{display:flex;align-items:center;gap:16px}
+.shx .lg{width:86px;height:86px;object-fit:contain;flex:none}
+.shx .lz{width:86px;flex:none}
+.shx .lt{flex:1;text-align:center}
+.shx .ln{font-family:'Noto Serif Sinhala',serif;font-weight:700;font-size:30px;line-height:1.35;color:#6F092E}
+.shx .la{font-size:12.5px;color:#4a3a3d;margin-top:2px}
+.shx .rule{height:6px;border-top:3px solid #6F092E;border-bottom:1px solid #E8B400;margin:10px 0 12px}
+.shx .tt{background:#6F092E;color:#fff;text-align:center;padding:7px 12px;border-radius:4px}
+.shx .t1{font-family:'Noto Serif Sinhala',serif;font-weight:700;font-size:18px;line-height:1.4}
+.shx .t2{font-size:12px;opacity:.92}
+.shx .dt{display:grid;grid-template-columns:1fr 1fr;gap:0 24px;margin:12px 0 10px}
+.shx .dr{display:flex;gap:8px;border-bottom:1px dotted #b9a7ab;padding:4px 0;font-size:13.5px}
+.shx .dr.full{grid-column:1/-1}
+.shx .dr span{color:#6B5B5E;flex:none;width:130px}
+.shx .dr b{font-weight:600;flex:1;overflow-wrap:anywhere}
+.shx table.st{width:100%;border-collapse:collapse;margin-top:2px}
+.shx table.st th,.shx table.st td{border:1px solid #b8a3a8;padding:4px 10px;text-align:left;white-space:normal;font-size:13px;background:none;color:#241417;font-weight:400;position:static}
+.shx table.st th{background:#f6eeee;color:#3D0016;font-weight:600;text-align:center}
+.shx table.st td.c{text-align:center}
+.shx .gb{display:inline-block;min-width:34px;padding:0 8px;border-radius:12px;font-weight:800;font-size:14px;text-align:center}
+.shx .gab{color:#6B5B5E;font-style:italic;font-size:12px}
+.shx .sm{display:flex;gap:8px;margin-top:10px}
+.shx .sc{flex:1;border:1px solid #d8c8cb;border-radius:6px;text-align:center;padding:4px 0;background:#fcf8f6}
+.shx .sc b{display:block;font-size:19px;font-weight:800;line-height:1.25}
+.shx .sc i{font-style:normal;font-size:11px;color:#6B5B5E}
+.shx .vd{margin-top:10px;border:2px solid;border-radius:6px;padding:7px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.shx .vd .vt{font-family:'Noto Serif Sinhala',serif;font-weight:700;font-size:18px}
+.shx .vd .vc{font-size:11px;color:#4a3a3d;text-align:right;max-width:330px;line-height:1.4}
+.shx .vd.ok{border-color:#1A7A60;background:#eef8f4}.shx .vd.ok .vt{color:#1A7A60}
+.shx .vd.no{border-color:#B03A2E;background:#fbeeec}.shx .vd.no .vt{color:#B03A2E}
+.shx .vd.ab{border-color:#8a7a7d;background:#f4f1f1}.shx .vd.ab .vt{color:#4a3a3d}
+.shx .key{font-size:10.5px;color:#6B5B5E;margin-top:6px}
+.shx .rm{margin-top:8px;font-size:12.5px;border-left:3px solid #E8B400;padding:3px 10px;background:#fffaf0}
+.shx .sg{margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;gap:14px;padding-top:10px}
+.shx .sb{width:230px;text-align:center}
+.shx .sv{height:66px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;font-size:14px;font-weight:600}
+.shx .sv img{max-height:62px;max-width:200px;object-fit:contain}
+.shx .sl{border-top:1px solid #241417;padding-top:3px;font-size:12px;line-height:1.45;color:#3a2a2d}
+.shx .sl .pn{display:block;font-weight:600;font-size:13px;color:#241417}
+.shx .sl .ps{color:#6B5B5E;font-size:11px}
+.shx .seal{width:92px;height:92px;border:1px solid #d3c1c5;border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:10px;line-height:1.35;color:#b5a3a7;flex:none;margin-bottom:6px}
+.shx.tight{padding-top:28px}
+.shx.tight table.st th,.shx.tight table.st td{padding:2px 8px;font-size:12px}
+.shx.tight .dr{padding:2px 0;font-size:12.5px}
+.shx.tight .lg,.shx.tight .lz{width:70px;height:70px}
+.shx.tight .sv{height:52px}
+#yStatus{margin-top:12px;font-size:.9rem;color:var(--mute)}
+#yStatus.err{color:var(--bad)}
 </style>
 
 <header>
@@ -3391,6 +3468,17 @@ header h1.sname{margin:0;font-size:clamp(1.15rem,3vw,1.6rem)}
   <label class="drop" id="drop">සා.පෙළ ප්‍රතිඵල Excel ගොනුව (.xlsx, .xls, .csv) මෙතැනට ඇද දමන්න, නැතහොත් ක්ලික් කරන්න<input type="file" id="file" accept=".xlsx,.xls,.csv"></label>
   <div class="bar"><button id="sample">නියැදි දත්ත පූරණය කරන්න</button><button id="reset">යළි පිහිටුවන්න</button><button id="csv">හොඳම ප්‍රතිඵල (CSV) බාගන්න</button></div>
   <div id="status">විභාග දෙපාර්තමේන්තු ප්‍රතිඵල පත්‍රිකාව (උදා: 32SS, 21 C, 44S+ ආකාරයේ කේත) හෝ සරල A, B, C, S, W ශ්‍රේණි සහිත ගොනුවක් භාවිතා කළ හැක. + යනු එම විෂයට නොපැමිණීමයි.</div>
+</section>
+
+<section id="yrSec">
+  <h2>වර්ෂය අනුව ප්‍රතිඵල සුරැකීම (Yearly Archive)</h2>
+  <p class="empty" style="margin-bottom:12px">ප්‍රතිඵල ගොනුව උඩුගත කරන විට, විභාග වර්ෂය ඇතුළත් කර ඇත්නම් ස්වයංක්‍රීයව සුරැකේ. සුරැකි වර්ෂයක් ඕනෑම වේලාවක නැවත විවෘත කර විශ්ලේෂණය සහ පත්‍රිකා බාගත කළ හැක.</p>
+  <div class="filters">
+    <div><label for="fYear">විභාග වර්ෂය *</label><input type="text" id="fYear" inputmode="numeric" placeholder="උදා: 2025"></div>
+    <div><label for="ySaved">සුරැකි වර්ෂ</label><select id="ySaved"><option value="">— සුරැකි වර්ෂ නොමැත —</option></select></div>
+  </div>
+  <div class="bar"><button class="pri" id="ySave">වත්මන් ප්‍රතිඵල මෙම වර්ෂයට සුරකින්න</button><button id="yLoad">තෝරාගත් වර්ෂය විවෘත කරන්න</button><button id="yDel">තෝරාගත් වර්ෂය මකන්න</button></div>
+  <div id="yStatus">විෂය නම් (හඳුනා නොගත් කේත) වෙනස් කළහොත් නැවත "සුරකින්න" ඔබන්න.</div>
 </section>
 
 <section>
@@ -3465,8 +3553,35 @@ header h1.sname{margin:0;font-size:clamp(1.15rem,3vw,1.6rem)}
   <p class="empty" style="margin-bottom:12px">මෙම කේත නිල විෂය ලැයිස්තුවේ නැත. නම ටයිප් කළ විට වගු සහ සටහන් ස්වයංක්‍රීයව යාවත්කාලීන වේ.</p>
   <div class="filters" id="names"></div>
 </section>
+<section id="sheetSec">
+  <h2>4. තනි සිසු ප්‍රතිඵල පත්‍රිකා (Individual Result Sheets)</h2>
+  <p class="empty" style="margin-bottom:12px">පාසල් ලිපිශීර්ෂය (ලාංඡනය සහ නම) සහ විදුහල්පතිගේ අත්සන සහිත, එක් සිසුවෙකුට එක් A4 පිටුවක් බැගින් PDF ප්‍රතිඵල පත්‍රිකා බාගත කළ හැක. සිසුන් තෝරන්නේ ඉහත පෙරහන් සහ සමත්වීමේ නිර්ණායකය අනුවයි.</p>
+  <div class="filters">
+    <div><label for="isYear">විභාග වර්ෂය</label><input type="text" id="isYear" placeholder="උදා: 2025"></div>
+    <div><label for="isDate">නිකුත් කරන දිනය</label><input type="date" id="isDate"></div>
+    <div><label for="isPrincipal">විදුහල්පතිගේ නම</label><input type="text" id="isPrincipal" placeholder="අත්සන යට මුද්‍රණය වේ"></div>
+    <div><label for="isAddr">ලිපිශීර්ෂයේ අමතර පේළිය (ලිපිනය / දුරකථනය / විද්‍යුත් තැපෑල)</label><input type="text" id="isAddr" placeholder="උදා: ලිපිනය | දුරකථනය | විද්‍යුත් තැපෑල"></div>
+    <div><label for="isSigFile">විදුහල්පතිගේ අත්සන (රූප ගොනුව: PNG / JPG)</label><input type="file" id="isSigFile" accept="image/*"><div id="isSigBox" class="sigbox"></div></div>
+  </div>
+  <div style="margin-top:14px"><label for="isNote">සියලු පත්‍රිකාවල දිස්වන සටහන (විකල්ප)</label><textarea id="isNote" rows="2"></textarea></div>
+
+  <h3>සිසුවෙකු තෝරන්න</h3>
+  <div class="filters">
+    <div><label for="isFind">සොයන්න (නම / විභාග අංකය)</label><input type="text" id="isFind" placeholder="සොයන්න..."></div>
+    <div><label for="isStudent">සිසුවා <span id="isCount"></span></label><select id="isStudent"></select></div>
+  </div>
+  <div id="sheetPrev"></div>
+  <div class="bar"><button class="pri" id="isOne">තෝරාගත් සිසුවාගේ PDF බාගන්න</button></div>
+
+  <h3>සියලු සිසුන්ගේ පත්‍රිකා එකවර බාගැනීම</h3>
+  <div class="filters">
+    <div><label for="isScope">කවුරුන් සඳහාද</label><select id="isScope"><option value="all">පෙරහන් කළ සියලු සිසුන්</option><option value="pass">සමත් සිසුන් පමණි</option><option value="fail">අසමත් සිසුන් පමණි</option></select></div>
+  </div>
+  <div class="bar"><button class="pri" id="isAll">සියලු සිසුන්ගේ PDF බාගන්න</button></div>
+  <div id="isStatus">අත්සන සහ ලිපිශීර්ෂ තොරතුරු මෙම පරිගණකයේ මතක තබා ගැනේ. සිසුන් 80කට වඩා ඇත්නම් PDF ගොනු කිහිපයකට බෙදා බාගැනේ.</div>
+</section>
 </main>
-<div id="printArea"></div><style id="pageStyle"></style>
+<div id="printArea"></div><style id="pageStyle"></style><div id="sheetHost" aria-hidden="true"></div>
 
 <script>
 const $=id=>document.getElementById(id);
@@ -3501,7 +3616,7 @@ function gradeOf(v){
 }
 /* null = හිස්, undefined = හඳුනාගත නොහැක. "32SS" = කේතය 32, මාධ්‍යය S, ශ්‍රේණිය S; "21 C 3" = කේතය 21, ශ්‍රේණිය C */
 function cellOf(v){
-  if(norm(v)==='')return null;
+  if(norm(v)===''||norm(v)==='-')return null;   // '-' = විෂය කර නැත (not taken); '+' = නොපැමිණි
   const s=String(v),m=s.match(/^(\d{2})[A-Za-z ](.)/);
   if(m){const g=gradeOf(m[2]);return g?{k:m[1],g}:undefined;}
   const g=gradeOf(s);return g?{k:null,g}:undefined;
@@ -3533,7 +3648,7 @@ function parse(aoa){
       const x=cellOf(r[c]);if(!x)return;
       const k=x.k||head[c];
       if(!seen[k]){seen[k]=1;reg.push({k,h:head[c],coded:!!x.k,c});}
-      s.push({k,g:x.g});
+      s.push({k,g:x.g,h:head[c]});   // h = source column (basket) header
     });
     return {school:sI>=0?norm(r[sI]):'',idx:iI>=0?norm(r[iI]):'',name:nI>=0?norm(r[nI]):'',
       gender:gI>=0?gender(r[gI]):'',medium:mI>=0?medium(r[mI]):'',
@@ -3544,9 +3659,10 @@ function parse(aoa){
   $('fSchool').parentElement.style.display=hasSchool?'':'none';
   const sel=$('fSchool');sel.length=1;
   [...new Set(rows.map(r=>r.school).filter(Boolean))].sort().forEach(s=>sel.add(new Option(s,s)));
+  const autoSch=autoSchool();
   buildNames();
   setStatus('අයදුම්කරුවන් '+rows.length+' දෙනෙකු සහ විෂය '+reg.length+' ක් හඳුනාගත්තා ('+reg.map(nameOf).join(', ')+').'+
-    (!reg.some(e=>isMathK(e.k))?' ගණිත විෂය හමු නොවීය.':''));
+    (!reg.some(e=>isMathK(e.k))?' ගණිත විෂය හමු නොවීය.':'')+(autoSch?' පාසල ලෙස "'+autoSch+'" ස්වයංක්‍රීයව තෝරන ලදී.':''));
   render();
 }
 function buildNames(){
@@ -3623,7 +3739,7 @@ function renderPies(){
   $('pieGrid').innerHTML=d.stats.map(x=>pieCard(x.s,gItems(x.c),150,'සිසුන් '+x.n+' • සමත් '+pct(x.ps,x.n))).join('');
 }
 
-function render(){renderPies();
+function render(){renderPies();fillStudents();
   const f=filtered(),sat=f.filter(r=>!isAbsent(r));
   const pass=sat.filter(r=>passes(r,$('fPass').value)).length,fail=sat.length-pass;
   $('metrics').innerHTML=card('මුළු අයදුම්කරුවන්',f.length,'')+card('විභාගයට පෙනී සිටි ගණන',sat.length,pct(sat.length,f.length))+
@@ -3653,7 +3769,7 @@ function readFile(file){
       const wb=XLSX.read(e.target.result,{type:'array'});
       let best=[];
       wb.SheetNames.forEach(n=>{const a=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:''});if(a.length>best.length)best=a;});
-      parse(best);
+      {const _b=rows;parse(best);if(rows!==_b)afterUpload(file.name);}
     }catch(err){setStatus('ගොනුව කියවීමට නොහැකි විය. එය .xlsx හෝ .csv ලෙස සුරකින්න.',1);}
   };
   rd.readAsArrayBuffer(file);
@@ -3668,7 +3784,7 @@ dz.addEventListener('drop',e=>e.dataTransfer.files[0]&&readFile(e.dataTransfer.f
 $('reset').onclick=()=>{
   rows=[];reg=[];custom={};lastBest=[];$('file').value='';
   ['fSchool','fAtt','fGen','fMed','fPass'].forEach(id=>$(id).selectedIndex=0);$('fAbs').value='with';$('fSchool').length=1;
-  $('fSchool').parentElement.style.display='';$('namesSec').hidden=true;
+  $('fSchool').parentElement.style.display='';$('namesSec').hidden=true;$('rSchool').value=SCHOOL_NAME;$('isFind').value='';$('fYear').value='';sampleMode=false;
   setStatus('යළි පිහිටුවන ලදී. ප්‍රතිඵල ගොනුවක් උඩුගත කරන්න.');render();
 };
 $('csv').onclick=()=>{
@@ -3685,7 +3801,7 @@ $('sample').onclick=()=>{
     const b=Math.random(),gr=()=>{const x=Math.random()*.8+b*.6;return Math.random()<.03?'+':x>1.1?'A':x>.9?'B':x>.65?'C':x>.45?'S':'W';};
     aoa.push(['Student '+i,i%9?1:2,i%2?'M':'F','S',52540000+i,...main.map(([c,m])=>c+m+gr()),...grp.map(g=>pick(g)+'S'+gr()),'0 0 0 0 0']);
   }
-  parse(aoa);
+  parse(aoa);sampleMode=true;
 };
 /* ===== වාර්තා (PDF / Excel / අභිරුචි) ===== */
 const SEC=['Metrics','Best','Weak','Ratios','Subjects','Pies','BestList','FailList','All'];
@@ -3700,7 +3816,7 @@ function filterText(){return ['fSchool','fAbs','fAtt','fGen','fMed','fPass'].map
 function needData(){if(!rows.length){setStatus('වාර්තාවක් සෑදීමට පළමුව ප්‍රතිඵල ගොනුවක් උඩුගත කරන්න.',1);return false;}return true;}
 function opts(over){
   over=over||{};
-  const o={title:$('rTitle').value.trim()||over.title||'G.C.E. සා.පෙළ ප්‍රතිඵල විශ්ලේෂණ වාර්තාව',school:$('rSchool').value.trim(),year:$('rYear').value.trim(),
+  const o={title:$('rTitle').value.trim()||over.title||'G.C.E. සා.පෙළ ප්‍රතිඵල විශ්ලේෂණ වාර්තාව',school:$('rSchool').value.trim()||SCHOOL_NAME,year:$('rYear').value.trim()||$('fYear').value.trim(),
     remarks:$('rRemarks').value.trim(),sign:$('rSign').checked,minA:+$('rMinA').value||5,orient:$('rOrient').value,bw:$('rColor').value==='bw'};
   SEC.forEach(n=>o['s'+n]=$('s'+n).checked);
   Object.keys(over).forEach(k=>{if(k!=='title')o[k]=over[k];});
@@ -3718,11 +3834,11 @@ function analyze(){
   return {f,sat,ok,fail:sat.filter(r=>!ok.has(r)),best:lv.map(k=>cnt('A',k)),weak:lv.map(k=>cnt('W',k)),stats};
 }
 const byName=(a,b)=>String(a.name).localeCompare(String(b.name));
-const HL=['#','දර්ශක අංකය','නම','ස්ත්‍රී/පු','වාරය','A','B','C','S','W'];
+const HL=['#','විභාග අංකය','නම','ස්ත්‍රී/පු','වාරය','A','B','C','S','W'];
 const listRows=(arr,g)=>arr.map((r,i)=>[i+1,r.idx,r.name,r.gender,r.attempt,...GR.map(x=>count(r,x))]);
 const bestList=(d,m)=>listRows(d.sat.filter(r=>count(r,'A')>=m).sort((a,b)=>count(b,'A')-count(a,'A')||byName(a,b)));
 const failList=d=>listRows([...d.fail].sort((a,b)=>count(b,'W')-count(a,'W')||byName(a,b)));
-function allHead(){return ['දර්ශක අංකය','නම','ස්ත්‍රී/පු','වාරය',...reg.map(e=>e.k),'ප්‍රතිඵලය'];}
+function allHead(){return ['විභාග අංකය','නම','ස්ත්‍රී/පු','වාරය',...reg.map(e=>e.k),'ප්‍රතිඵලය'];}
 function allRows(d){return d.f.map(r=>{const m={};r.s.forEach(x=>m[x.k]=x.g);
   return [r.idx,r.name,r.gender,r.attempt,...reg.map(e=>gr(m[e.k])),isAbsent(r)?'නොපැමිණි':d.ok.has(r)?'සමත්':'අසමත්'];});}
 const rank=(t,a)=>tbl(['9 '+t,'8 '+t,'7 '+t,'6 '+t,'5 '+t],[a]);
@@ -3730,7 +3846,7 @@ const fmt=(a,b)=>a+' ('+pct(a,b)+')';
 
 function buildReport(o){
   const d=analyze(),h=[];
-  h.push(letterhead()+'<h1>'+esc(o.title)+'</h1><p class="meta">'+[o.school&&'<b>'+esc(o.school)+'</b>',o.year&&'විභාග වර්ෂය: '+esc(o.year),'දිනය: '+new Date().toISOString().slice(0,10)].filter(Boolean).join(' &nbsp;|&nbsp; ')+'</p><p class="flt">පෙරහන්: '+esc(filterText())+'</p>');
+  h.push(letterhead()+'<h1>'+esc(o.title)+'</h1><p class="meta">'+[o.school&&o.school!==SCHOOL_NAME&&'<b>'+esc(o.school)+'</b>',o.year&&'විභාග වර්ෂය: '+esc(o.year),'දිනය: '+new Date().toISOString().slice(0,10)].filter(Boolean).join(' &nbsp;|&nbsp; ')+'</p><p class="flt">පෙරහන්: '+esc(filterText())+'</p>');
   if(o.sMetrics)h.push('<h2>සාරාංශ දර්ශක</h2>'+tbl(['මුළු අයදුම්කරුවන්','පෙනී සිටි ගණන','සමත් ප්‍රමාණය','අසමත් ප්‍රමාණය'],[[d.f.length,fmt(d.sat.length,d.f.length),fmt(d.ok.size,d.sat.length),fmt(d.fail.length,d.sat.length)]]));
   if(o.sBest)h.push('<h2>හොඳම ප්‍රතිඵල ශ්‍රේණිගත කිරීම</h2>'+rank('A',d.best));
   if(o.sWeak)h.push('<h2>දුර්වල ප්‍රතිඵල ශ්‍රේණිගත කිරීම</h2>'+rank('W',d.weak));
@@ -3757,13 +3873,13 @@ function excelReport(o){
   if(!needData())return;
   const d=analyze(),wb=XLSX.utils.book_new();let n=0;
   const add=(name,aoa,w)=>{const ws=XLSX.utils.aoa_to_sheet(aoa);if(w)ws['!cols']=w.map(x=>({wch:x}));XLSX.utils.book_append_sheet(wb,ws,name);n++;};
-  const meta=[[SCHOOL_NAME],[o.title],[o.school],['විභාග වර්ෂය',o.year],['පෙරහන්',filterText()],[]];
+  const meta=[[SCHOOL_NAME],[o.title],[o.school===SCHOOL_NAME?'':o.school],['විභාග වර්ෂය',o.year],['පෙරහන්',filterText()],[]];
   if(o.sMetrics)add('සාරාංශය',[...meta,['මුළු අයදුම්කරුවන්',d.f.length],['පෙනී සිටි ගණන',d.sat.length],['සමත් ප්‍රමාණය',d.ok.size],['සමත් %',+(d.sat.length?d.ok.size/d.sat.length*100:0).toFixed(1)],['අසමත් ප්‍රමාණය',d.fail.length],...(o.remarks?[[],['සටහන්',o.remarks]]:[])],[28,60]);
   if(o.sBest||o.sWeak){const a=[['','9','8','7','6','5']];if(o.sBest)a.push(['A ගණන',...d.best]);if(o.sWeak)a.push(['W ගණන',...d.weak]);add('ශ්‍රේණිගත කිරීම',a,[14,8,8,8,8,8]);}
   if(o.sRatios||o.sSubjects)add('විෂය විශ්ලේෂණය',[['විෂයය','පෙනී සිටි','A','B','C','S','W','සමත්','සමත් %'],...d.stats.map(x=>[x.s,x.n,...GR.map(g=>x.c[g]),x.ps,+(x.ps/x.n*100).toFixed(1)])],[42,10,6,6,6,6,6,8,10]);
   if(o.sBestList)add('හොඳම සිසුන්',[HL,...bestList(d,o.minA)],[5,14,48,10,8,5,5,5,5,5]);
   if(o.sFailList)add('අසමත් සිසුන්',[HL,...failList(d)],[5,14,48,10,8,5,5,5,5,5]);
-  if(o.sAll)add('සියලු ප්‍රතිඵල',[['දර්ශක අංකය','නම','ස්ත්‍රී/පු','වාරය',...reg.map(e=>e.k+' '+nameOf(e)),'ප්‍රතිඵලය'],...allRows(d)],[14,48,10,8]);
+  if(o.sAll)add('සියලු ප්‍රතිඵල',[['විභාග අංකය','නම','ස්ත්‍රී/පු','වාරය',...reg.map(e=>e.k+' '+nameOf(e)),'ප්‍රතිඵලය'],...allRows(d)],[14,48,10,8]);
   if(!n)return setStatus('අභිරුචි වාර්තාවේ අඩංගු කිරීමට අවම වශයෙන් එක් කොටසක් තෝරන්න.',1);
   XLSX.writeFile(wb,'OL_Report_'+new Date().toISOString().slice(0,10)+'.xlsx');
   setStatus('Excel වාර්තාව සකස් කරන ලදී ('+n+' පත්‍ර).');
@@ -3775,6 +3891,262 @@ $('bXlsBest').onclick=()=>excelReport(opts({...BESTONLY,title:'හොඳම ප�
 $('bXlsAll').onclick=()=>excelReport(opts(EVERY));
 $('bPdfX').onclick=()=>printReport(opts());
 $('bXlsX').onclick=()=>excelReport(opts());
+/* ===== තනි සිසු ප්‍රතිඵල පත්‍රිකා (Individual result sheets: letterhead + principal signature) ===== */
+const SHC_KEY='demis_ol_sheet_cfg_v1';
+let SHC={principal:'',addr:'',sig:''};
+try{const s=localStorage.getItem(SHC_KEY);if(s)SHC=Object.assign(SHC,JSON.parse(s));}catch(e){}
+function saveShc(){try{localStorage.setItem(SHC_KEY,JSON.stringify(SHC));}catch(e){}}
+const setIs=(t,e)=>{const s=$('isStatus');s.textContent=t;s.className=e?'err':'';};
+let isBusy=false;
+const GNAME={M:'පුරුෂ',F:'ස්ත්‍රී'},MNAME={S:'සිංහල',T:'දෙමළ',E:'ඉංග්‍රීසි'};
+const fnSafe=s=>String(s||'').replace(/[\\\/:*?"<>|\s]+/g,'_').replace(/^_+|_+$/g,'');
+function todayLocal(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);}
+const byIdx=(a,b)=>String(a.idx).localeCompare(String(b.idx),undefined,{numeric:true})||byName(a,b);
+
+function sheetHtml(r){
+  const yr=$('isYear').value.trim()||$('rYear').value.trim()||$('fYear').value.trim();
+  const date=$('isDate').value||todayLocal();
+  const so=$('fPass').selectedOptions[0],crit=so?so.text:'';
+  const abs=isAbsent(r),ok=!abs&&passes(r,$('fPass').value);
+  let m={};
+  // one subject per basket/column (real grade wins over absent), then max 9 subjects
+  const pick={};r.s.forEach(x=>{const b=x.h!==undefined?x.h:x.k,p=pick[b];if(!p||(p.g==='AB'&&x.g!=='AB'))pick[b]=x;});
+  const chosen={};Object.values(pick).forEach(x=>chosen[x.k]=x.g);
+  let took=reg.filter(e=>chosen[e.k]!==undefined);
+  m=chosen;
+  if(took.length>9)took=took.slice(0,9);   // absent (+) subjects are kept and shown; safety cap of 9
+  const cnt={A:0,B:0,C:0,S:0,W:0};took.forEach(e=>{const g=m[e.k];if(cnt[g]!==undefined)cnt[g]++;});
+  const rowsH=took.length?took.map((e,i)=>{const g=m[e.k];
+    return '<tr><td class="c">'+(i+1)+'</td><td class="c">'+(/^\d{2}$/.test(e.k)?esc(e.k):'–')+'</td><td>'+esc(nameOf(e))+'</td><td class="c">'+
+      (g==='AB'?'<span class="gab">නොපැමිණි (+)</span>':'<span class="gb" style="background:'+PCOL[g]+';color:'+(g==='C'?'#3D0016':'#fff')+'">'+g+'</span>')+'</td></tr>';}).join('')
+    :'<tr><td class="c" colspan="4">විෂය නොමැත</td></tr>';
+  const dr=(l,v,f)=>'<div class="dr'+(f?' full':'')+'"><span>'+l+'</span><b>'+esc(v)+'</b></div>';
+  const det=dr('නම (Name)',r.name||'—',1)+dr('විභාග අංකය (Index No.)',r.idx||'—')+dr('වාරය (Attempt)',r.attempt+' වන වාරය')+
+    (yr?dr('විභාග වර්ෂය (Year)',yr):'')+(r.gender?dr('ස්ත්‍රී/පුරුෂ (Gender)',GNAME[r.gender]):'')+(r.medium?dr('මාධ්‍යය (Medium)',MNAME[r.medium]):'')+
+    dr('පාසල (School)',SCHOOL_NAME,1);
+  const chips=['A','B','C','S','W'].map(g=>'<div class="sc"><b style="color:'+PCOL[g]+'">'+cnt[g]+'</b><i>'+g+' ශ්‍රේණි</i></div>').join('')+
+    '<div class="sc"><b>'+took.length+'</b><i>මුළු විෂය</i></div>';
+  const vd=abs?'<div class="vd ab"><div class="vt">විභාගයට නොපැමිණි (ABSENT)</div></div>'
+    :'<div class="vd '+(ok?'ok':'no')+'"><div class="vt">'+(ok?'සමත් (PASS)':'අසමත් (FAIL)')+'</div><div class="vc">සමත්වීමේ නිර්ණායකය:<br>'+esc(crit)+'</div></div>';
+  const LG=SCHOOL_LOGO?'<img class="lg" src="'+SCHOOL_LOGO+'" alt="">':'<div class="lg"></div>';
+  const WM=SCHOOL_LOGO?'<img class="wm" src="'+SCHOOL_LOGO+'" alt="">':'';
+  const note=$('isNote').value.trim();
+  return '<div class="shx"><div class="fr"></div><div class="fr2"></div>'+WM+'<div class="in">'+
+    '<div class="lh">'+LG+'<div class="lt"><div class="ln">'+esc(SCHOOL_NAME)+'</div>'+(SHC.addr?'<div class="la">'+esc(SHC.addr)+'</div>':'')+'</div><div class="lz"></div></div><div class="rule"></div>'+
+    '<div class="tt"><div class="t1">G.C.E. සාමාන්‍ය පෙළ විභාගය — ප්‍රතිඵල පත්‍රිකාව</div><div class="t2">G.C.E. (Ordinary Level) Examination — Individual Result Sheet'+(yr?' · '+esc(yr):'')+'</div></div>'+
+    '<div class="dt">'+det+'</div>'+
+    '<table class="st"><thead><tr><th style="width:52px">අනු</th><th style="width:96px">විෂය කේතය</th><th>විෂයය (Subject)</th><th style="width:130px">ශ්‍රේණිය (Grade)</th></tr></thead><tbody>'+rowsH+'</tbody></table>'+
+    '<div class="sm">'+chips+'</div>'+vd+
+    '<div class="key">A – Distinction · B – Very Good · C – Credit · S – Ordinary Pass · W – Weak · (+) – Absent</div>'+
+    (note?'<div class="rm">'+esc(note).replace(/\n/g,'<br>')+'</div>':'')+
+    '<div class="sg">'+
+      '<div class="sb"><div class="sv"><span>'+esc(date)+'</span></div><div class="sl">නිකුත් කළ දිනය<br>Date of Issue</div></div>'+
+      '<div class="seal">පාසල් මුද්‍රාව<br>School Seal</div>'+
+      '<div class="sb"><div class="sv">'+(SHC.sig?'<img src="'+SHC.sig+'" alt="">':'')+'</div><div class="sl">'+(SHC.principal?'<b class="pn">'+esc(SHC.principal)+'</b>':'')+'<div>විදුහල්පති (Principal)</div><div class="ps">'+esc(SCHOOL_NAME)+'</div></div></div>'+
+    '</div></div></div>';
+}
+const fitSheet=el=>{if(el&&el.scrollHeight>el.clientHeight+1)el.classList.add('tight');};
+
+function pickedStudent(){const v=$('isStudent').value;return v===''?null:(rows[+v]||null);}
+function fillStudents(){
+  const sel=$('isStudent');if(!sel)return;
+  const q=$('isFind').value.trim().toLowerCase(),prev=sel.value,ix=new Map(rows.map((r,i)=>[r,i]));
+  const all=filtered().slice().sort(byIdx);
+  const list=all.filter(r=>!q||(r.name+' '+r.idx).toLowerCase().includes(q));
+  sel.innerHTML=list.length?list.map(r=>'<option value="'+ix.get(r)+'">'+esc((r.idx||'-')+' — '+(r.name||'නම නැත')+(isAbsent(r)?' (නොපැමිණි)':''))+'</option>').join(''):'<option value="">— සිසුන් නොමැත —</option>';
+  if(prev&&[...sel.options].some(o=>o.value===prev))sel.value=prev;
+  $('isCount').textContent=all.length?'('+list.length+' / '+all.length+')':'';
+  renderPreview();
+}
+function renderPreview(){
+  const box=$('sheetPrev'),r=pickedStudent();
+  if(!r){box.innerHTML='<p class="empty">ප්‍රතිඵල ගොනුවක් උඩුගත කර සිසුවෙකු තෝරන්න.</p>';return;}
+  box.innerHTML='<div class="pvw" id="pvw"><div class="pvi" id="pvi">'+sheetHtml(r)+'</div></div>';
+  fitSheet($('pvi').firstElementChild);fitPreview();
+}
+function fitPreview(){
+  const w=$('pvw');if(!w)return;
+  const s=Math.min(1,(w.parentElement.clientWidth||794)/794);
+  $('pvi').style.transform='scale('+s+')';w.style.height=Math.round(1123*s)+'px';w.style.width=Math.round(794*s)+'px';
+}
+window.addEventListener('resize',fitPreview);
+
+function showSig(){
+  $('isSigBox').innerHTML=SHC.sig?'<img src="'+SHC.sig+'" alt=""><button type="button" id="isSigDel">ඉවත් කරන්න</button>'
+    :'<span class="empty" style="font-size:.82rem">අත්සන රූපයක් නැත — පත්‍රිකාවේ අතින් අත්සන් කිරීමට හිස් ඉඩක් ඉතිරි වේ.</span>';
+  const d=$('isSigDel');if(d)d.onclick=()=>{SHC.sig='';saveShc();$('isSigFile').value='';showSig();renderPreview();};
+}
+$('isSigFile').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const sc=Math.min(1,600/img.width,240/img.height),c=document.createElement('canvas');
+      c.width=Math.max(1,Math.round(img.width*sc));c.height=Math.max(1,Math.round(img.height*sc));
+      const x=c.getContext('2d');x.drawImage(img,0,0,c.width,c.height);
+      /* සුදු / ලා පසුබිම ඉවත් කර තීන්ත පමණක් තබා ගැනීම */
+      try{const d=x.getImageData(0,0,c.width,c.height),p=d.data;
+        for(let i=0;i<p.length;i+=4){const l=.299*p[i]+.587*p[i+1]+.114*p[i+2];
+          if(l>=225)p[i+3]=0;else if(l>170)p[i+3]=Math.round(p[i+3]*(225-l)/55);}
+        x.putImageData(d,0,0);}catch(err){}
+      SHC.sig=c.toDataURL('image/png');saveShc();showSig();renderPreview();
+      setIs('අත්සන එක් කරන ලදී.');
+    };
+    img.onerror=()=>setIs('රූප ගොනුව කියවීමට නොහැකි විය.',1);
+    img.src=ev.target.result;
+  };
+  rd.readAsDataURL(f);
+};
+$('isPrincipal').oninput=()=>{SHC.principal=$('isPrincipal').value.trim();saveShc();renderPreview();};
+$('isAddr').oninput=()=>{SHC.addr=$('isAddr').value.trim();saveShc();renderPreview();};
+['isYear','isDate','isNote'].forEach(id=>$(id).oninput=renderPreview);
+$('isStudent').onchange=renderPreview;
+$('isFind').oninput=fillStudents;
+
+async function sheetCanvas(r,scale){
+  const host=$('sheetHost');host.innerHTML=sheetHtml(r);
+  const el=host.firstElementChild;
+  try{await Promise.all([document.fonts.load('400 14px "Noto Sans Sinhala"','අ'),document.fonts.load('600 14px "Noto Sans Sinhala"','අ'),
+    document.fonts.load('800 14px "Noto Sans Sinhala"','අ'),document.fonts.load('700 14px "Noto Serif Sinhala"','අ')]);await document.fonts.ready;}catch(e){}
+  await Promise.all([...el.querySelectorAll('img')].map(im=>im.complete?0:new Promise(res=>{im.onload=im.onerror=res;})));
+  fitSheet(el);
+  const c=await html2canvas(el,{scale:scale,backgroundColor:'#ffffff',logging:false});
+  host.innerHTML='';
+  return c;
+}
+function libsOk(){if(!window.html2canvas||!window.jspdf){setIs('PDF library load වී නැත (Internet සම්බන්ධතාව අවශ්‍යයි).',1);return false;}return true;}
+const setBtns=b=>['isOne','isAll'].forEach(id=>$(id).disabled=b);
+async function runPdf(list,base){
+  if(isBusy||!libsOk())return;
+  isBusy=true;setBtns(true);
+  const CH=80,parts=Math.ceil(list.length/CH),sc=list.length>30?1.5:2;
+  try{
+    const {jsPDF}=window.jspdf;let done=0;
+    for(let p=0;p<parts;p++){
+      const chunk=list.slice(p*CH,(p+1)*CH);
+      const pdf=new jsPDF({orientation:'portrait',unit:'pt',format:'a4'});
+      const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+      for(let i=0;i<chunk.length;i++){
+        setIs('සකස් කරමින්... '+(done+1)+' / '+list.length);
+        const c=await sheetCanvas(chunk[i],sc);
+        if(i)pdf.addPage();
+        pdf.addImage(c.toDataURL('image/jpeg',0.92),'JPEG',0,0,pw,ph,undefined,'FAST');
+        c.width=c.height=0;done++;
+        await new Promise(res=>setTimeout(res,0));
+      }
+      pdf.save(parts>1?base+'_part'+(p+1)+'of'+parts+'.pdf':base+'.pdf');
+    }
+    setIs('PDF සූදානම් — පත්‍රිකා '+list.length+'ක්'+(parts>1?' (ගොනු '+parts+'ක්)':'')+' බාගත කරන ලදී.');
+  }catch(err){console.error(err);setIs('PDF සෑදීමේ දෝෂයකි. Internet සම්බන්ධතාව පරීක්ෂා කර නැවත උත්සාහ කරන්න.',1);}
+  finally{isBusy=false;setBtns(false);}
+}
+$('isOne').onclick=()=>{
+  const r=pickedStudent();if(!r){setIs('පළමුව සිසුවෙකු තෝරන්න.',1);return;}
+  runPdf([r],'OL_Result_'+(fnSafe(r.idx)||fnSafe(r.name)||'student'));
+};
+$('isAll').onclick=()=>{
+  if(!rows.length){setIs('පළමුව ප්‍රතිඵල ගොනුවක් උඩුගත කරන්න.',1);return;}
+  const sc=$('isScope').value,cfgP=$('fPass').value;let l=filtered();
+  if(sc==='pass')l=l.filter(r=>!isAbsent(r)&&passes(r,cfgP));
+  else if(sc==='fail')l=l.filter(r=>!isAbsent(r)&&!passes(r,cfgP));
+  l=l.slice().sort(byIdx);
+  if(!l.length){setIs('තෝරාගත් පෙරහන්වලට අදාළ සිසුන් නොමැත.',1);return;}
+  runPdf(l,'OL_Result_Sheets_'+l.length+'_students');
+};
+
+/* පෙරනිමි අගයන් (defaults) */
+function autoSchool(){
+  const sel=$('fSchool'),n2=s=>String(s).replace(/[\s\u200c\u200d]/g,'').toLowerCase();
+  const hit=[...sel.options].filter(o=>o.value&&/ධර්මරාජ|dharmaraj/.test(n2(o.value)));
+  if(hit.length===1){sel.value=hit[0].value;return hit[0].value;}
+  return '';
+}
+$('rSchool').value=SCHOOL_NAME;
+$('isDate').value=todayLocal();
+$('isPrincipal').value=SHC.principal;$('isAddr').value=SHC.addr;showSig();
+
+/* ===== වර්ෂය අනුව ප්‍රතිඵල සුරැකීම (yearly archive: Firestore via app bridge, fallback = this browser) ===== */
+const YL='demis_ol_year_';
+let sampleMode=false,lastFile='',savedList=[];
+const setY=(t,e)=>{const s=$('yStatus');s.textContent=t;s.className=e?'err':'';};
+const yStore=()=>window.parent&&window.parent.olStore;
+const yKey=y=>String(y).trim().replace(/[\/\\\s.#$\[\]:]+/g,'_');
+async function refreshSaved(){
+  const items=[];let cloudErr='';
+  const S=yStore();
+  if(S){try{(await S.list()).forEach(x=>items.push({w:'c',key:x.id,year:x.year||x.id,count:x.count||0,ts:x.savedAt||0}));}catch(e){cloudErr=(e&&e.code)||'err';}}
+  try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);
+    if(k&&k.indexOf(YL)===0){const o=JSON.parse(localStorage.getItem(k));items.push({w:'l',key:k.slice(YL.length),year:o.year||k.slice(YL.length),count:o.count||0,ts:o.savedAt||0});}}}catch(e){}
+  items.sort((a,b)=>String(b.year).localeCompare(String(a.year),undefined,{numeric:true}));
+  savedList=items;
+  $('ySaved').innerHTML=items.length?items.map(x=>'<option value="'+x.w+':'+esc(x.key)+'">'+esc(x.year)+' — සිසුන් '+x.count+(x.ts?' — '+new Date(x.ts).toISOString().slice(0,10):'')+' ('+(x.w==='c'?'Online':'මෙම පරිගණකය')+')</option>').join('')
+    :'<option value="">— සුරැකි වර්ෂ නොමැත —</option>';
+  return cloudErr;
+}
+async function saveYear(){
+  if(!rows.length){setY('සුරැකීමට ප්‍රතිඵල නොමැත. පළමුව ගොනුවක් උඩුගත කරන්න.',1);return;}
+  if(sampleMode){setY('නියැදි දත්ත සුරකින්නේ නැත. සැබෑ ප්‍රතිඵල ගොනුවක් උඩුගත කරන්න.',1);return;}
+  const y=$('fYear').value.trim();
+  if(!y){setY('පළමුව විභාග වර්ෂය ඇතුළත් කරන්න (උදා: 2025), ඉන්පසු සුරකින්න.',1);$('fYear').focus();return;}
+  const key=yKey(y);
+  if(savedList.some(x=>x.key===key)&&!confirm(y+' වර්ෂය සඳහා සුරැකි ප්‍රතිඵල දැනටමත් ඇත. ඒවා ප්‍රතිස්ථාපනය කරන්නද?')){setY('සුරැකීම අවලංගු කරන ලදී.');return;}
+  const payload={year:y,count:rows.length,fileName:lastFile,data:JSON.stringify({rows:rows,reg:reg,custom:custom})};
+  const S=yStore();let where='',note='';
+  if(S&&payload.data.length<900000){
+    try{await S.save(key,payload);where='c';}
+    catch(e){note=(e&&e.code==='permission-denied')?'Firestore rules හි olResults සඳහා අවසර නැත':'ජාල / සේවා දෝෂයක්';console.error(e);}
+  }else if(S)note='දත්ත ප්‍රමාණය Online සුරැකීමට විශාල වැඩියි';
+  if(!where){
+    try{localStorage.setItem(YL+key,JSON.stringify(Object.assign({savedAt:Date.now()},payload)));where='l';}
+    catch(e){setY('සුරැකීමට නොහැකි විය ('+(note||'ගබඩා ඉඩ මදි')+').',1);return;}
+  }
+  await refreshSaved();
+  const opt=[...$('ySaved').options].find(o=>o.value===where+':'+key);if(opt)opt.selected=true;
+  setY(where==='c'?y+' වර්ෂයේ ප්‍රතිඵල (සිසුන් '+rows.length+') Online සුරකින ලදී.'
+    :y+' වර්ෂයේ ප්‍රතිඵල මෙම පරිගණකයේ පමණක් සුරකින ලදී ('+note+').');
+}
+function applyLoaded(o,y){
+  rows=o.rows||[];reg=o.reg||[];custom=o.custom||{};sampleMode=false;
+  $('file').value='';
+  const sel=$('fSchool');sel.length=1;
+  $('fSchool').parentElement.style.display=rows.some(r=>r.school)?'':'none';
+  [...new Set(rows.map(r=>r.school).filter(Boolean))].sort().forEach(s=>sel.add(new Option(s,s)));
+  const a=autoSchool();buildNames();
+  $('fYear').value=y;
+  setStatus(y+' වර්ෂයේ සුරැකි ප්‍රතිඵල විවෘත කරන ලදී — අයදුම්කරුවන් '+rows.length+', විෂය '+reg.length+'.'+(a?' පාසල ලෙස "'+a+'" තෝරන ලදී.':''));
+  render();
+}
+async function loadYear(){
+  const v=$('ySaved').value;if(!v){setY('විවෘත කිරීමට සුරැකි වර්ෂයක් නොමැත.',1);return;}
+  const w=v.slice(0,1),key=v.slice(2);let d=null;
+  try{
+    if(w==='c'){const S=yStore();d=S?await S.get(key):null;}
+    else{const t=localStorage.getItem(YL+key);d=t?JSON.parse(t):null;}
+    if(!d||!d.data)throw new Error('empty');
+    applyLoaded(JSON.parse(d.data),d.year||key);
+    setY((d.year||key)+' වර්ෂය විවෘත කරන ලදී.');
+  }catch(e){console.error(e);setY('සුරැකි ප්‍රතිඵල විවෘත කිරීමට නොහැකි විය.',1);}
+}
+async function deleteYear(){
+  const v=$('ySaved').value;if(!v){setY('මකන්න සුරැකි වර්ෂයක් නොමැත.',1);return;}
+  const w=v.slice(0,1),key=v.slice(2),it=savedList.find(x=>x.w===w&&x.key===key);
+  if(!confirm((it?it.year:key)+' වර්ෂයේ සුරැකි ප්‍රතිඵල ස්ථිරවම මකන්නද?'))return;
+  try{
+    if(w==='c'){await yStore().remove(key);}else{localStorage.removeItem(YL+key);}
+    await refreshSaved();setY('සුරැකි ප්‍රතිඵල මකන ලදී.');
+  }catch(e){console.error(e);setY('මකා දැමීමට නොහැකි විය.',1);}
+}
+function afterUpload(name){
+  sampleMode=false;lastFile=name||'';
+  if(!$('fYear').value.trim()){const m=String(name||'').match(/(?:19|20)\d{2}/);if(m)$('fYear').value=m[0];}
+  if($('fYear').value.trim())saveYear();
+  else setY('ප්‍රතිඵල පූරණය විය. සුරැකීමට විභාග වර්ෂය ඇතුළත් කර "සුරකින්න" ඔබන්න.');
+  renderPreview();
+}
+$('ySave').onclick=saveYear;$('yLoad').onclick=loadYear;$('yDel').onclick=deleteYear;
+$('fYear').oninput=renderPreview;
+refreshSaved().then(e=>{if(e==='permission-denied')setY('Online සුරැකීමට Firestore rules වල olResults සඳහා අවසර අවශ්‍යයි — දැනට සුරැකෙන්නේ මෙම පරිගණකයේ පමණි.');});
 render();
 </script>
 
